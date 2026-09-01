@@ -1,0 +1,130 @@
+<%- include('../partials/head', { title: title }) %>
+<div class="uuas-app">
+  <%- include('../partials/sidebar-lecturer') %>
+  <div class="uuas-main">
+    <%- include('../partials/navbar', { topbarTitle: 'Create Course' }) %>
+    <div class="uuas-content">
+      <div class="uuas-page-header uuas-flex-between uuas-mb-6">
+        <div>
+          <h1 class="uuas-h2">Create New Course</h1>
+          <p class="uuas-text-sm uuas-muted" style="margin-top:0.25rem">Set up a course for attendance tracking and geofencing.</p>
+        </div>
+        <a href="/lecturer/courses" class="uuas-btn uuas-btn--ghost">← Back</a>
+      </div>
+
+      <div class="uuas-card" style="max-width:680px">
+        <div class="uuas-card-body">
+          <% if (error) { %>
+            <div class="uuas-alert uuas-alert--error" role="alert"><%= error %></div>
+          <% } %>
+
+          <form method="POST" action="/lecturer/courses/new" novalidate>
+            <div class="uuas-grid-2" style="gap:1rem">
+              <div class="uuas-form-group">
+                <label class="uuas-label" for="code">Course Code <span style="color:var(--uuas-red)">*</span></label>
+                <input type="text" id="code" name="code" class="uuas-input" placeholder="e.g. CSC301" required aria-required="true" style="text-transform:uppercase">
+              </div>
+              <div class="uuas-form-group">
+                <label class="uuas-label" for="credit_units">Credit Units</label>
+                <input type="number" id="credit_units" name="credit_units" class="uuas-input" value="3" min="1" max="6">
+              </div>
+            </div>
+
+            <div class="uuas-form-group">
+              <label class="uuas-label" for="title">Course Title <span style="color:var(--uuas-red)">*</span></label>
+              <input type="text" id="title" name="title" class="uuas-input" placeholder="e.g. Data Structures and Algorithms" required>
+            </div>
+
+            <div class="uuas-grid-2" style="gap:1rem">
+              <div class="uuas-form-group">
+                <label class="uuas-label" for="department">Department</label>
+                <input type="text" id="department" name="department" class="uuas-input" placeholder="Computer Science">
+              </div>
+              <div class="uuas-form-group">
+                <label class="uuas-label" for="level">Level</label>
+                <select id="level" name="level" class="uuas-select">
+                  <option value="">Select level…</option>
+                  <option value="100">100 Level</option>
+                  <option value="200">200 Level</option>
+                  <option value="300" selected>300 Level</option>
+                  <option value="400">400 Level</option>
+                  <option value="500">500 Level</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="uuas-grid-2" style="gap:1rem">
+              <div class="uuas-form-group">
+                <label class="uuas-label" for="semester">Semester</label>
+                <select id="semester" name="semester" class="uuas-select">
+                  <option value="first">First Semester</option>
+                  <option value="second">Second Semester</option>
+                </select>
+              </div>
+              <div class="uuas-form-group">
+                <label class="uuas-label" for="gps_radius_meters">GPS Radius (meters)</label>
+                <input type="number" id="gps_radius_meters" name="gps_radius_meters" class="uuas-input" value="100" min="20" max="2000">
+              </div>
+            </div>
+
+            <hr class="uuas-divider">
+            <h3 class="uuas-h3" style="margin-bottom:1rem">Venue Coordinates (Geofencing)</h3>
+
+            <div class="uuas-form-group">
+              <label class="uuas-label" for="venue_name">Venue Name</label>
+              <input type="text" id="venue_name" name="venue_name" class="uuas-input" placeholder="e.g. CS Block — Lecture Hall A">
+            </div>
+
+            <div class="uuas-grid-2" style="gap:1rem">
+              <div class="uuas-form-group">
+                <label class="uuas-label" for="venue_lat">Latitude</label>
+                <input type="number" id="venue_lat" name="venue_lat" class="uuas-input" step="0.0000001" placeholder="5.0543800">
+                <div class="uuas-input-help">Coordinates for GPS attendance validation</div>
+              </div>
+              <div class="uuas-form-group">
+                <label class="uuas-label" for="venue_lng">Longitude</label>
+                <input type="number" id="venue_lng" name="venue_lng" class="uuas-input" step="0.0000001" placeholder="7.9137300">
+              </div>
+            </div>
+
+            <button type="button" class="uuas-btn uuas-btn--outline uuas-btn--sm" id="btn-get-location" style="margin-bottom:1.5rem;display:inline-flex;align-items:center;gap:0.4rem">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              <span>Use My Current Location as Venue</span>
+            </button>
+
+            <div class="uuas-flex uuas-gap-3">
+              <button type="submit" class="uuas-btn uuas-btn--primary uuas-btn--lg">Create Course</button>
+              <a href="/lecturer/courses" class="uuas-btn uuas-btn--ghost uuas-btn--lg">Cancel</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/js/gps.js"></script>
+<script>
+  document.getElementById('btn-get-location').addEventListener('click', async () => {
+    const btn = document.getElementById('btn-get-location');
+    btn.innerHTML = 'Getting location…';
+    btn.disabled = true;
+    try {
+      const pos = await captureGPS();
+      document.getElementById('venue_lat').value = pos.lat.toFixed(7);
+      document.getElementById('venue_lng').value = pos.lng.toFixed(7);
+      btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Location set (±${Math.round(pos.accuracy)}m)`;
+    } catch (err) {
+      btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> Use My Current Location as Venue';
+      btn.disabled = false;
+      alert(err.message);
+    }
+  });
+
+  // Auto-uppercase course code
+  document.getElementById('code').addEventListener('input', function() {
+    this.value = this.value.toUpperCase();
+  });
+</script>
+
+<%- include('../partials/footer') %>

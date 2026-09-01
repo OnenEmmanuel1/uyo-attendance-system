@@ -1,0 +1,68 @@
+<%- include('../partials/head', { title: title }) %>
+<div class="uuas-app">
+  <%- include('../partials/sidebar-lecturer') %>
+  <div class="uuas-main">
+    <%- include('../partials/navbar', { topbarTitle: 'My Courses' }) %>
+    <div class="uuas-content">
+      <div class="uuas-page-header uuas-flex-between uuas-mb-6">
+        <div>
+          <h1 class="uuas-h2">My Courses</h1>
+          <p class="uuas-text-sm uuas-muted" style="margin-top:0.25rem">All courses assigned to you for attendance management.</p>
+        </div>
+        <a href="/lecturer/courses/new" class="uuas-btn uuas-btn--primary">+ Create Course</a>
+      </div>
+
+      <% if (!courses.length) { %>
+        <div class="uuas-card">
+          <div class="uuas-empty">
+            <div style="display:flex;align-items:center;justify-content:center;margin-bottom:0.75rem;color:var(--uuas-gray-400)">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            </div>
+            <p class="uuas-bold">No courses yet</p>
+            <p class="uuas-text-sm uuas-muted" style="margin-bottom:1rem">Create a new course to start tracking student attendance.</p>
+            <a href="/lecturer/courses/new" class="uuas-btn uuas-btn--primary">Create Your First Course</a>
+          </div>
+        </div>
+      <% } else { %>
+        <div class="uuas-grid-2">
+          <% courses.forEach(c => { %>
+            <div class="uuas-card">
+              <div class="uuas-card-header">
+                <div class="uuas-flex uuas-items-center uuas-gap-3">
+                  <div class="uuas-avatar-circle"><%= c.code.substring(0,2) %></div>
+                  <div>
+                    <span class="uuas-pill uuas-pill--ontime"><%= c.code %></span>
+                    <h2 class="uuas-h3" style="margin-top:0.35rem"><%= c.title %></h2>
+                  </div>
+                </div>
+              </div>
+              <div class="uuas-card-body">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem">
+                  <div style="background:var(--uuas-gray-50);padding:0.75rem 1rem;border-radius:var(--uuas-r-md);border:1px solid var(--uuas-border)">
+                    <div class="uuas-text-xs uuas-muted" style="text-transform:uppercase;letter-spacing:0.08em;font-weight:700">Enrolled</div>
+                    <div class="uuas-bold" style="font-size:1.5rem;color:var(--uuas-green-forest)"><%= c.enrolled_count %></div>
+                  </div>
+                  <div style="background:var(--uuas-gray-50);padding:0.75rem 1rem;border-radius:var(--uuas-r-md);border:1px solid var(--uuas-border)">
+                    <div class="uuas-text-xs uuas-muted" style="text-transform:uppercase;letter-spacing:0.08em;font-weight:700">Sessions</div>
+                    <div class="uuas-bold" style="font-size:1.5rem;color:var(--uuas-green-forest)"><%= c.total_sessions %></div>
+                  </div>
+                </div>
+                <% if (c.venue_name) { %>
+                  <p class="uuas-text-sm uuas-muted" style="margin-bottom:1rem;display:flex;align-items:center;gap:6px">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                    Venue: <strong><%= c.venue_name %></strong>
+                  </p>
+                <% } %>
+                <div class="uuas-flex uuas-gap-2">
+                  <a href="/lecturer/reports?course_id=<%= c.id %>" class="uuas-btn uuas-btn--outline uuas-btn--sm">View Reports</a>
+                  <a href="/lecturer/dashboard" class="uuas-btn uuas-btn--primary uuas-btn--sm">Open Session</a>
+                </div>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</div>
+<%- include('../partials/footer') %>

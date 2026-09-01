@@ -1,0 +1,94 @@
+<%- include('../partials/head', { title: title }) %>
+<div class="uuas-app">
+  <%- include('../partials/sidebar-admin') %>
+  <div class="uuas-main">
+    <%- include('../partials/navbar', { topbarTitle: 'Enroll Students' }) %>
+    <div class="uuas-content">
+      <%- include('../partials/flash') %>
+      <div class="uuas-page-header uuas-flex-between uuas-mb-6">
+        <div>
+          <div class="uuas-flex uuas-items-center uuas-gap-2">
+            <span class="uuas-pill uuas-pill--ontime"><%= course.code %></span>
+            <h1 class="uuas-h2">Enroll Students</h1>
+          </div>
+          <p class="uuas-text-sm uuas-muted" style="margin-top:0.25rem"><%= course.title %></p>
+        </div>
+        <a href="/admin/courses" class="uuas-btn uuas-btn--ghost">← Back</a>
+      </div>
+
+      <div class="uuas-grid-2" style="gap:1.5rem;align-items:start">
+        <!-- Add student card -->
+        <div class="uuas-card">
+          <div class="uuas-card-header"><h2 class="uuas-h3">Enroll New Student</h2></div>
+          <div class="uuas-card-body">
+            <% if (!available.length) { %>
+              <p class="uuas-text-sm uuas-muted">All active students in the system are currently enrolled in this course.</p>
+            <% } else { %>
+              <form method="POST" action="/admin/courses/<%= course.id %>/enroll">
+                <div class="uuas-form-group">
+                  <label class="uuas-label" for="student_id">Select Student</label>
+                  <select name="student_id" id="student_id" class="uuas-select" required>
+                    <option value="">— Select a student —</option>
+                    <% available.forEach(s => { %>
+                      <option value="<%= s.id %>"><%= s.name %> (<%= s.matric_or_staff_id %>)</option>
+                    <% }) %>
+                  </select>
+                </div>
+                <button type="submit" class="uuas-btn uuas-btn--primary">Enroll Student in Course</button>
+              </form>
+            <% } %>
+          </div>
+        </div>
+
+        <!-- Currently enrolled card -->
+        <div class="uuas-card">
+          <div class="uuas-table-card-header">
+            <div>
+              <h2 class="uuas-h3">Enrolled Roster</h2>
+              <p class="uuas-text-xs uuas-muted" style="margin-top:2px"><%= enrolled.length %> students registered</p>
+            </div>
+            <span class="uuas-pill uuas-pill--ontime"><%= enrolled.length %> Students</span>
+          </div>
+          <% if (!enrolled.length) { %>
+            <div class="uuas-empty" style="padding:2.5rem">No students enrolled yet.</div>
+          <% } else { %>
+            <div class="uuas-table-wrapper">
+              <table class="uuas-table" aria-label="Enrolled students">
+                <thead>
+                  <tr>
+                    <th scope="col">Student ↕</th>
+                    <th scope="col">Matric No. ↕</th>
+                    <th scope="col" class="uuas-text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% enrolled.forEach(s => { %>
+                    <tr>
+                      <td>
+                        <div class="uuas-table-user-cell">
+                          <div class="uuas-avatar-circle"><%= s.name.charAt(0).toUpperCase() %></div>
+                          <span class="uuas-table-user-name"><%= s.name %></span>
+                        </div>
+                      </td>
+                      <td class="uuas-table-user-sub"><%= s.matric_or_staff_id %></td>
+                      <td class="uuas-text-right">
+                        <form method="POST" action="/admin/courses/<%= course.id %>/unenroll/<%= s.id %>" style="display:inline">
+                          <button type="submit"
+                                  class="uuas-btn uuas-btn--danger uuas-btn--sm"
+                                  data-confirm="Remove <%= s.name %> from this course?">
+                            Remove
+                          </button>
+                        </form>
+                      </td>
+                    </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<%- include('../partials/footer') %>

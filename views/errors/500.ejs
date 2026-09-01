@@ -1,0 +1,14 @@
+<%- include('../partials/head', { title: '500 Server Error — AttendUyo' }) %>
+<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--uuas-bg);font-family:var(--uuas-font);padding:1.5rem">
+  <div class="uuas-card" style="text-align:center;max-width:440px;padding:2.5rem 2rem;width:100%">
+    <div style="font-size:4rem;font-weight:800;line-height:1;margin-bottom:0.75rem;color:var(--uuas-red)">500</div>
+    <h1 class="uuas-h2" style="margin-bottom:0.5rem">Internal Server Error</h1>
+    <p class="uuas-text-sm uuas-muted" style="margin-bottom:1.75rem">An unexpected server error occurred while processing your request.</p>
+    <% if (typeof user !== 'undefined' && user) { %>
+      <a href="/<%= user.role %>/dashboard" class="uuas-btn uuas-btn--primary">Return to Dashboard</a>
+    <% } else { %>
+      <a href="/login" class="uuas-btn uuas-btn--primary">Sign In</a>
+    <% } %>
+  </div>
+</div>
+<%- include('../partials/footer') %>

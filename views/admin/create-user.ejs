@@ -1,0 +1,73 @@
+<%- include('../partials/head', { title: title }) %>
+<div class="uuas-app">
+  <%- include('../partials/sidebar-admin') %>
+  <div class="uuas-main">
+    <%- include('../partials/navbar', { topbarTitle: 'Add New User' }) %>
+    <div class="uuas-content">
+      <div class="uuas-page-header uuas-flex-between uuas-mb-6">
+        <div>
+          <h1 class="uuas-h2">Create User Account</h1>
+          <p class="uuas-text-sm uuas-muted" style="margin-top:0.25rem">Register a student, lecturer, or administrator into AttendUyo.</p>
+        </div>
+        <a href="/admin/users" class="uuas-btn uuas-btn--ghost">← Back</a>
+      </div>
+
+      <div class="uuas-card" style="max-width:640px">
+        <div class="uuas-card-body">
+          <% if (error) { %>
+            <div class="uuas-alert uuas-alert--error" role="alert"><%= error %></div>
+          <% } %>
+          <form method="POST" action="/admin/users/new" novalidate>
+            <div class="uuas-form-group">
+              <label class="uuas-label" for="name">Full Name <span style="color:var(--uuas-red)">*</span></label>
+              <input type="text" id="name" name="name" class="uuas-input" required placeholder="e.g. Aniekan Umoh">
+            </div>
+
+            <div class="uuas-form-group">
+              <label class="uuas-label" for="email">Institutional Email <span style="color:var(--uuas-red)">*</span></label>
+              <input type="email" id="email" name="email" class="uuas-input" required placeholder="user@uniuyo.edu.ng">
+            </div>
+
+            <div class="uuas-grid-2" style="gap:1rem">
+              <div class="uuas-form-group">
+                <label class="uuas-label" for="role">User Role <span style="color:var(--uuas-red)">*</span></label>
+                <select id="role" name="role" class="uuas-select" required>
+                  <option value="student">Student</option>
+                  <option value="lecturer">Lecturer</option>
+                  <option value="admin">Administrator</option>
+                </select>
+              </div>
+              <div class="uuas-form-group">
+                <label class="uuas-label" for="matric_or_staff_id">Matric / Staff ID <span style="color:var(--uuas-red)">*</span></label>
+                <input type="text" id="matric_or_staff_id" name="matric_or_staff_id" class="uuas-input" required placeholder="CSC/2025/001">
+              </div>
+            </div>
+
+            <div class="uuas-grid-2" style="gap:1rem">
+              <div class="uuas-form-group">
+                <label class="uuas-label" for="department">Academic Department</label>
+                <input type="text" id="department" name="department" class="uuas-input" placeholder="Computer Science">
+              </div>
+              <div class="uuas-form-group">
+                <label class="uuas-label" for="phone">Phone Number</label>
+                <input type="tel" id="phone" name="phone" class="uuas-input" placeholder="08012345678">
+              </div>
+            </div>
+
+            <div class="uuas-form-group">
+              <label class="uuas-label" for="password">Initial Password <span style="color:var(--uuas-red)">*</span></label>
+              <input type="password" id="password" name="password" class="uuas-input" required minlength="8" placeholder="Minimum 8 characters">
+              <div class="uuas-input-help">Temporary password for first sign-in.</div>
+            </div>
+
+            <div class="uuas-flex uuas-gap-3">
+              <button type="submit" class="uuas-btn uuas-btn--primary uuas-btn--lg">Create Account</button>
+              <a href="/admin/users" class="uuas-btn uuas-btn--ghost uuas-btn--lg">Cancel</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<%- include('../partials/footer') %>

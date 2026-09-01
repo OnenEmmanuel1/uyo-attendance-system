@@ -1,0 +1,64 @@
+<%- include('../partials/head', { title: title }) %>
+<div class="uuas-app">
+  <%- include('../partials/sidebar-student') %>
+  <div class="uuas-main">
+    <%- include('../partials/navbar', { topbarTitle: 'My Registered Courses' }) %>
+    <div class="uuas-content">
+      <div class="uuas-page-header uuas-mb-6">
+        <div>
+          <h1 class="uuas-h2">My Courses</h1>
+          <p class="uuas-text-sm uuas-muted" style="margin-top:0.25rem">All courses and modules enrolled for this semester.</p>
+        </div>
+      </div>
+
+      <% if (!courses.length) { %>
+        <div class="uuas-card">
+          <div class="uuas-empty">
+            <div style="display:flex;align-items:center;justify-content:center;margin-bottom:0.75rem;color:var(--uuas-gray-400)">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            </div>
+            <p class="uuas-bold">No courses found</p>
+            <p class="uuas-text-sm uuas-muted">Contact your administrator or lecturer to be registered for semester courses.</p>
+          </div>
+        </div>
+      <% } else { %>
+        <div class="uuas-grid-2" style="gap:1.5rem">
+          <% courses.forEach(c => { %>
+            <div class="uuas-card">
+              <div class="uuas-card-header">
+                <div class="uuas-flex uuas-items-center uuas-gap-3">
+                  <div class="uuas-avatar-circle"><%= c.code.substring(0,2) %></div>
+                  <div>
+                    <span class="uuas-pill <%= c.at_risk ? 'uuas-pill--danger' : 'uuas-pill--ontime' %>"><%= c.code %></span>
+                    <h2 class="uuas-h3" style="margin-top:0.35rem"><%= c.title %></h2>
+                  </div>
+                </div>
+              </div>
+              <div class="uuas-card-body">
+                <p class="uuas-text-sm uuas-muted" style="margin-bottom:1.25rem;display:flex;align-items:center;gap:6px">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                  Lecturer: <strong><%= c.lecturer_name %></strong>
+                </p>
+                <% if (c.total_sessions > 0) { %>
+                  <div style="margin-bottom:0.75rem">
+                    <div class="uuas-flex-between" style="margin-bottom:0.35rem">
+                      <span class="uuas-text-xs uuas-muted">Attendance Rate</span>
+                      <span class="uuas-text-sm uuas-bold" style="color:var(--uuas-<%= c.at_risk ? 'red' : 'green' %>)"><%= c.percentage %>%</span>
+                    </div>
+                    <div class="uuas-progress">
+                      <div class="uuas-progress-bar uuas-progress-bar--<%= c.at_risk ? 'danger' : 'success' %>" style="width:<%= c.percentage %>%"></div>
+                    </div>
+                  </div>
+                  <p class="uuas-text-xs uuas-muted"><%= c.attended %> of <%= c.total_sessions %> sessions attended</p>
+                <% } else { %>
+                  <p class="uuas-text-xs uuas-muted">No sessions have been held yet.</p>
+                <% } %>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</div>
+<%- include('../partials/footer') %>

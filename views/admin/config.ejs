@@ -1,0 +1,60 @@
+<%- include('../partials/head', { title: title }) %>
+<div class="uuas-app">
+  <%- include('../partials/sidebar-admin') %>
+  <div class="uuas-main">
+    <%- include('../partials/navbar', { topbarTitle: 'System Configuration' }) %>
+    <div class="uuas-content">
+      <div class="uuas-page-header uuas-mb-6">
+        <div>
+          <h1 class="uuas-h2">System Configuration</h1>
+          <p class="uuas-text-sm uuas-muted" style="margin-top:0.25rem">Default system-wide parameters and authentication constraints.</p>
+        </div>
+      </div>
+
+      <div class="uuas-card" style="max-width:640px">
+        <div class="uuas-card-body">
+          <div class="uuas-alert uuas-alert--info">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <div>These values are loaded from the environment file (<code>.env</code>). Edit environment variables and restart the server to update.</div>
+          </div>
+
+          <dl style="display:flex;flex-direction:column;gap:1.5rem;margin-top:1.5rem">
+            <div>
+              <dt style="font-weight:700;color:var(--uuas-gray-900);margin-bottom:0.25rem">GPS Default Radius</dt>
+              <dd>
+                <span style="font-size:1.5rem;font-weight:800;color:var(--uuas-green-forest)"><%= config.gpsRadius %>m</span>
+                <div class="uuas-text-xs uuas-muted" style="margin-top:2px">Maximum allowable distance from venue coordinates for GPS attendance check.</div>
+              </dd>
+            </div>
+            <hr class="uuas-divider" style="margin:0">
+            <div>
+              <dt style="font-weight:700;color:var(--uuas-gray-900);margin-bottom:0.25rem">Default Session Duration</dt>
+              <dd>
+                <span style="font-size:1.5rem;font-weight:800;color:var(--uuas-green-forest)"><%= config.sessionExpiry %> min</span>
+                <div class="uuas-text-xs uuas-muted" style="margin-top:2px">Default active session duration before automatic closure and token expiry.</div>
+              </dd>
+            </div>
+            <hr class="uuas-divider" style="margin:0">
+            <div>
+              <dt style="font-weight:700;color:var(--uuas-gray-900);margin-bottom:0.25rem">At-Risk Attendance Threshold</dt>
+              <dd>
+                <span style="font-size:1.5rem;font-weight:800;color:var(--uuas-red)"><%= config.atRiskThreshold %>%</span>
+                <div class="uuas-text-xs uuas-muted" style="margin-top:2px">Students falling below this overall attendance rate are flagged for academic review.</div>
+              </dd>
+            </div>
+          </dl>
+
+          <hr class="uuas-divider">
+          <h3 class="uuas-h3" style="margin-bottom:0.75rem">WebAuthn / Biometric Notes</h3>
+          <div class="uuas-alert uuas-alert--warning">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <div>
+              WebAuthn biometric verification requires <strong>HTTPS or localhost</strong> in the client browser. In production, configure reverse proxy with TLS.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<%- include('../partials/footer') %>

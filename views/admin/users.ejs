@@ -1,0 +1,107 @@
+<%- include('../partials/head', { title: title }) %>
+<div class="uuas-app">
+  <%- include('../partials/sidebar-admin') %>
+  <div class="uuas-main">
+    <%- include('../partials/navbar', { topbarTitle: 'User Management' }) %>
+    <div class="uuas-content">
+      <%- include('../partials/flash') %>
+      <div class="uuas-page-header uuas-flex-between uuas-mb-6">
+        <div>
+          <h1 class="uuas-h2">User Directory</h1>
+          <p class="uuas-text-sm uuas-muted" style="margin-top:0.25rem">Manage student, lecturer, and administrative system accounts.</p>
+        </div>
+        <a href="/admin/users/new" class="uuas-btn uuas-btn--primary">+ Add User</a>
+      </div>
+
+      <!-- Role filter tabs -->
+      <div style="display:flex;gap:0.5rem;margin-bottom:1.5rem;flex-wrap:wrap">
+        <% ['', 'student', 'lecturer', 'admin'].forEach(r => { %>
+          <a href="/admin/users<%= r ? '?role=' + r : '' %>"
+             class="uuas-btn <%= filterRole === r ? 'uuas-btn--primary' : 'uuas-btn--outline' %> uuas-btn--sm">
+            <%= r ? r.charAt(0).toUpperCase() + r.slice(1) + 's' : 'All Accounts' %>
+          </a>
+        <% }) %>
+      </div>
+
+      <div class="uuas-card">
+        <div class="uuas-table-card-header">
+          <div>
+            <h2 class="uuas-h3">Accounts List</h2>
+            <p class="uuas-text-xs uuas-muted" style="margin-top:2px">Filter by role, check status, or toggle access</p>
+          </div>
+          <div class="uuas-table-controls">
+            <div class="uuas-table-search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" placeholder="Search user..." aria-label="Search users">
+            </div>
+          </div>
+        </div>
+
+        <div class="uuas-table-wrapper">
+          <table class="uuas-table" aria-label="User list">
+            <thead>
+              <tr>
+                <th scope="col">User ↕</th>
+                <th scope="col">Email ↕</th>
+                <th scope="col">Matric / Staff ID ↕</th>
+                <th scope="col">Role ↕</th>
+                <th scope="col">Department ↕</th>
+                <th scope="col">Status</th>
+                <th scope="col" class="uuas-text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% if (!users.length) { %>
+                <tr><td colspan="7" class="uuas-empty">No users found.</td></tr>
+              <% } %>
+              <% users.forEach(u => { %>
+                <tr>
+                  <td>
+                    <div class="uuas-table-user-cell">
+                      <div class="uuas-avatar-circle"><%= u.name.charAt(0).toUpperCase() %></div>
+                      <span class="uuas-table-user-name"><%= u.name %></span>
+                    </div>
+                  </td>
+                  <td class="uuas-text-sm uuas-muted"><%= u.email %></td>
+                  <td class="uuas-table-user-sub"><%= u.matric_or_staff_id %></td>
+                  <td>
+                    <span class="uuas-pill uuas-pill--<%= {student:'ontime',lecturer:'late',admin:'absent'}[u.role] || 'leave' %>">
+                      <%= u.role.toUpperCase() %>
+                    </span>
+                  </td>
+                  <td class="uuas-text-sm uuas-muted"><%= u.department || '—' %></td>
+                  <td>
+                    <% if (u.is_active) { %>
+                      <span class="uuas-pill uuas-pill--ontime">Active</span>
+                    <% } else { %>
+                      <span class="uuas-pill uuas-pill--danger">Inactive</span>
+                    <% } %>
+                  </td>
+                  <td class="uuas-text-right">
+                    <form method="POST" action="/admin/users/<%= u.id %>/toggle" style="display:inline">
+                      <button type="submit"
+                              class="uuas-btn <%= u.is_active ? 'uuas-btn--outline' : 'uuas-btn--primary' %> uuas-btn--sm"
+                              data-confirm="<%= u.is_active ? 'Deactivate' : 'Activate' %> <%= u.name %>?"
+                              aria-label="<%= u.is_active ? 'Deactivate' : 'Activate' %> <%= u.name %>">
+                        <%= u.is_active ? 'Deactivate' : 'Activate' %>
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+        <div class="uuas-pagination-row">
+          <span>Showing <%= users.length %> user records</span>
+          <div class="uuas-pagination-controls">
+            <button class="uuas-page-btn">‹</button>
+            <button class="uuas-page-btn uuas-page-active">1</button>
+            <button class="uuas-page-btn">›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<%- include('../partials/footer') %>

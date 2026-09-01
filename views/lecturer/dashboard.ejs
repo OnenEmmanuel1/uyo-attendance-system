@@ -1,0 +1,552 @@
+<%- include('../partials/head', { title: title }) %>
+<div class="uuas-app">
+  <%- include('../partials/sidebar-lecturer') %>
+  <div class="uuas-main">
+    <%- include('../partials/navbar', { topbarTitle: 'Lecturer Dashboard' }) %>
+    <div class="uuas-content">
+      <%- include('../partials/flash') %>
+
+      <!-- Live Broadcast Active Notice (When any session is currently running) -->
+      <% if (openSessions.length > 0) { %>
+        <div class="uuas-card uuas-mb-6" style="border:2px solid var(--uuas-green);background:#f0fdf4;box-shadow:0 6px 24px rgba(16, 185, 129, 0.15)">
+          <div class="uuas-card-header" style="background:#ecfdf5;border-bottom:1px solid #d1fae5;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem">
+            <div class="uuas-flex uuas-items-center uuas-gap-2">
+              <span class="uuas-live-dot" style="width:10px;height:10px"></span>
+              <h2 class="uuas-h3" style="color:#064e3b;margin:0">Live Attendance Broadcast Active (<%= openSessions.length %>)</h2>
+            </div>
+            <span class="uuas-pill uuas-pill--ontime" style="font-weight:700">Broadcasting QR Code</span>
+          </div>
+          <div class="uuas-card-body" style="padding:1.25rem">
+            <% openSessions.forEach(sess => { %>
+              <div style="background:#ffffff;border:1px solid #a7f3d0;border-radius:var(--uuas-r-xl);padding:1.25rem;margin-bottom:0.75rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem">
+                <div>
+                  <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
+                    <h3 class="uuas-h3" style="color:var(--uuas-gray-900);margin:0"><%= sess.course_code %></h3>
+                    <span class="uuas-pill uuas-pill--ontime">Token: <strong><%= sess.session_token %></strong></span>
+                  </div>
+                  <div style="font-size:0.875rem;color:var(--uuas-gray-700);margin-top:0.35rem;font-weight:500"><%= sess.course_title %></div>
+                  <div style="font-size:0.75rem;color:var(--uuas-gray-500);margin-top:0.35rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+                    <span style="display:inline-flex;align-items:center;gap:0.3rem">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                      <%= sess.venue_name || 'Classroom' %>
+                    </span>
+                    <span style="display:inline-flex;align-items:center;gap:0.3rem">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                      Opened: <%= new Date(sess.opened_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) %>
+                    </span>
+                    <span style="display:inline-flex;align-items:center;gap:0.3rem">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 10"/></svg>
+                      Expires: <%= new Date(sess.expires_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) %>
+                    </span>
+                    <span style="color:var(--uuas-green-forest);font-weight:600;display:inline-flex;align-items:center;gap:0.3rem">
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                      <%= sess.attendee_count %> student(s) checked in
+                    </span>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap">
+                  <a href="/lecturer/session/<%= sess.id %>" class="uuas-btn uuas-btn--primary" style="display:inline-flex;align-items:center;gap:0.4rem">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    <span>Enter Live Session Monitor</span>
+                  </a>
+                  <button type="button" class="uuas-btn uuas-btn--outline uuas-btn--sm btn-close-live-session" data-session-id="<%= sess.id %>" style="color:var(--uuas-red);border-color:var(--uuas-red)">
+                    Close Session
+                  </button>
+                </div>
+              </div>
+            <% }) %>
+          </div>
+        </div>
+      <% } %>
+
+      <!-- Hero Action — Open Attendance Session Trigger -->
+      <div id="open-session-hero" style="margin-bottom:1.5rem">
+        <button class="uuas-hero-action uuas-hero-action--mark" id="btn-open-session-hero" role="button" aria-haspopup="dialog" aria-controls="open-session-modal">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <div>
+            <div style="font-size:1.125rem;font-weight:700">Open Attendance Session</div>
+            <div style="font-size:0.875rem;font-weight:400;opacity:0.9">Select an assigned course, set schedule & launch live verification</div>
+          </div>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:auto" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+
+      <!-- TeamHub Top Overview Grid: 3 Summary Cards + Trend Bar Chart -->
+      <% 
+        const totalEnrolled = courses.reduce((s,c) => s + (c.enrolled_count || 0), 0);
+        const totalSessions = courses.reduce((s,c) => s + (c.total_sessions || 0), 0);
+      %>
+      <div class="uuas-overview-grid">
+        <!-- Card 1: Mint (My Courses) -->
+        <div class="uuas-summary-card--mint">
+          <div class="uuas-summary-title">Active Courses</div>
+          <div class="uuas-summary-val-row">
+            <div class="uuas-summary-value"><%= courses.length %></div>
+            <div class="uuas-summary-delta">Assigned</div>
+          </div>
+          <div class="uuas-summary-footer">
+            <span><strong><%= totalSessions %></strong> sessions held</span>
+          </div>
+        </div>
+
+        <!-- Card 2: Vibrant Green (Live / Open Sessions) -->
+        <div class="uuas-summary-card--green">
+          <div class="uuas-summary-title">Open Sessions</div>
+          <div class="uuas-summary-val-row">
+            <div class="uuas-summary-value"><%= openSessions.length %></div>
+            <div class="uuas-summary-delta"><%= openSessions.length > 0 ? 'Active Now' : 'Ready' %></div>
+          </div>
+          <div class="uuas-summary-footer">
+            <span><strong><%= openSessions.length %></strong> broadcast in progress</span>
+          </div>
+        </div>
+
+        <!-- Card 3: Dark Forest Green (Total Enrolled Students) -->
+        <div class="uuas-summary-card--dark">
+          <div class="uuas-summary-title">Total Enrolled</div>
+          <div class="uuas-summary-val-row">
+            <div class="uuas-summary-value"><%= totalEnrolled %></div>
+            <div class="uuas-summary-delta">Students</div>
+          </div>
+          <div class="uuas-summary-footer">
+            <span>Across <%= courses.length %> course modules</span>
+          </div>
+        </div>
+
+        <!-- Card 4: Attendance Overview Trend Bar Chart -->
+        <div class="uuas-chart-card">
+          <div class="uuas-chart-header">
+            <div class="uuas-chart-title">Attendance Overview</div>
+            <select class="uuas-chart-select" aria-label="Chart time range">
+              <option>This Semester</option>
+              <option>Last 6 Months</option>
+            </select>
+          </div>
+          <div class="uuas-chart-body">
+            <div class="uuas-chart-y-axis">
+              <span>100%</span>
+              <span>75%</span>
+              <span>50%</span>
+              <span>25%</span>
+              <span>0%</span>
+            </div>
+            <div class="uuas-chart-bars">
+              <% if (courses.length > 0) { %>
+                <% courses.slice(0, 6).forEach((c, idx) => { 
+                    const heightPercent = c.attendance_pct || (idx === 0 ? 80 : idx === 1 ? 85 : 75);
+                    const isHovered = idx === 0;
+                %>
+                  <div class="uuas-bar-group" title="<%= c.code %>: <%= heightPercent %>% Average Attendance">
+                    <div class="uuas-chart-tooltip" <%= isHovered ? 'style="opacity:1"' : '' %>><%= heightPercent %>% Avg</div>
+                    <div class="uuas-bar-track">
+                      <div class="uuas-bar-fill <%= isHovered ? 'uuas-bar-fill--active' : '' %>" style="height: <%= Math.max(12, heightPercent) %>%"></div>
+                    </div>
+                    <span class="uuas-bar-label"><%= c.code %></span>
+                  </div>
+                <% }) %>
+              <% } else { %>
+                <div class="uuas-empty-state" style="padding:1rem">No course data available</div>
+              <% } %>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Course Roster Section with Action Shortcuts -->
+      <div class="uuas-section-header uuas-mt-6">
+        <div>
+          <h2 class="uuas-h3">My Assigned Courses</h2>
+          <p class="uuas-text-xs uuas-muted" style="margin-top:2px">Manage course attendance sessions, view rosters, and download reports</p>
+        </div>
+        <a href="/lecturer/courses/new" class="uuas-btn uuas-btn--primary uuas-btn--sm" style="display:inline-flex;align-items:center;gap:0.4rem">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <span>New Course</span>
+        </a>
+      </div>
+
+      <div class="uuas-card uuas-mt-4">
+        <div class="uuas-table-wrapper">
+          <table class="uuas-table" aria-label="Course list">
+            <thead>
+              <tr>
+                <th scope="col">Code ↕</th>
+                <th scope="col">Title ↕</th>
+                <th scope="col">Department ↕</th>
+                <th scope="col">Level ↕</th>
+                <th scope="col">Enrolled ↕</th>
+                <th scope="col">Sessions ↕</th>
+                <th scope="col">Status ↕</th>
+                <th scope="col" style="text-align:right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% if (!courses.length) { %>
+                <tr>
+                  <td colspan="8">
+                    <div class="uuas-empty-state">
+                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true" style="margin:0 auto 0.5rem;color:var(--uuas-gray-400)"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                      <p>No courses assigned yet.</p>
+                      <a href="/lecturer/courses/new" class="uuas-btn uuas-btn--primary uuas-btn--sm uuas-mt-4">Create Your First Course</a>
+                    </div>
+                  </td>
+                </tr>
+              <% } else { %>
+                <% courses.forEach(c => { 
+                    const isOpen = openSessions.some(s => s.course_id === c.id);
+                %>
+                  <tr>
+                    <td><strong style="color:var(--uuas-green-forest)"><%= c.code %></strong></td>
+                    <td>
+                      <div class="uuas-bold"><%= c.title %></div>
+                      <div class="uuas-text-xs uuas-muted">Venue: <%= c.venue_name || 'Classroom' %></div>
+                    </td>
+                    <td><%= c.department %></td>
+                    <td><span class="uuas-pill uuas-pill--leave"><%= c.level %>L</span></td>
+                    <td>
+                      <div class="uuas-flex uuas-items-center uuas-gap-2">
+                        <div class="uuas-avatar-circle" style="width:24px;height:24px;font-size:0.65rem"><%= c.enrolled_count %></div>
+                        <span class="uuas-text-xs"><%= c.enrolled_count %> students</span>
+                      </div>
+                    </td>
+                    <td class="uuas-text-xs uuas-muted"><%= c.total_sessions %> held</td>
+                    <td>
+                      <% if (isOpen) { %>
+                        <span class="uuas-pill uuas-pill--ontime" style="display:inline-flex;align-items:center;gap:4px">
+                          <span class="uuas-live-dot" style="width:6px;height:6px"></span> Live Now
+                        </span>
+                      <% } else { %>
+                        <span class="uuas-pill uuas-pill--leave">Ready</span>
+                      <% } %>
+                    </td>
+                    <td style="text-align:right">
+                      <div class="uuas-flex uuas-gap-2" style="justify-content:flex-end">
+                        <% if (isOpen) { %>
+                          <% const sess = openSessions.find(s => s.course_id === c.id); %>
+                          <a href="/lecturer/session/<%= sess.id %>" class="uuas-btn uuas-btn--primary uuas-btn--sm">
+                            Monitor Live
+                          </a>
+                        <% } else { %>
+                          <button
+                            class="uuas-btn uuas-btn--primary uuas-btn--sm btn-open-session-trigger"
+                            data-course-id="<%= c.id %>"
+                            data-course-code="<%= c.code %>"
+                            data-course-title="<%= c.title %>"
+                            onclick="openSessionModal(this)"
+                          >
+                            Open Session
+                          </button>
+                        <% } %>
+                        <a href="/lecturer/reports?course_id=<%= c.id %>" class="uuas-btn uuas-btn--outline uuas-btn--sm" title="View Course Attendance Report">
+                          Reports
+                        </a>
+                      </div>
+                    </td>
+                  </tr>
+                <% }) %>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Open Session Modal -->
+<div class="uuas-modal-backdrop" id="open-session-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="uuas-modal" style="max-width:540px">
+    <div class="uuas-modal-header">
+      <div>
+        <h2 class="uuas-h3" id="modal-title">Open Attendance Session</h2>
+        <p class="uuas-text-xs uuas-muted" style="margin-top:2px">Configure schedule & security parameters to generate dynamic QR</p>
+      </div>
+      <button class="uuas-btn uuas-btn--ghost uuas-btn--sm" id="btn-close-modal" aria-label="Close dialog" style="display:flex;align-items:center;justify-content:center;padding:4px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="uuas-modal-body">
+      <!-- Active Session Conflict Warning Banner -->
+      <div id="modal-active-alert" class="uuas-alert uuas-alert--error" style="display:none" role="alert">
+        <div>
+          <strong id="modal-active-alert-title">Live Session in Progress</strong>
+          <div id="modal-active-alert-msg" style="font-size:0.8125rem;margin-top:0.25rem"></div>
+          <div style="margin-top:0.65rem">
+            <a href="#" id="modal-active-alert-link" class="uuas-btn uuas-btn--sm" style="background:#ffffff;color:#991b1b;border:1px solid #f87171">
+              Go to Live Session Monitor
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div id="modal-error" class="uuas-alert uuas-alert--error" style="display:none" role="alert"></div>
+
+      <form id="open-session-form" novalidate>
+        <input type="hidden" id="modal-course-id" name="course_id">
+
+        <!-- Course Selector Dropdown -->
+        <div class="uuas-form-group">
+          <label class="uuas-label" for="modal-course-select">Select Course <span style="color:var(--uuas-red)">*</span></label>
+          <select id="modal-course-select" class="uuas-select" required>
+            <% if (!courses.length) { %>
+              <option value="" disabled selected>No courses assigned</option>
+            <% } else { %>
+              <% courses.forEach((c, idx) => { %>
+                <option value="<%= c.id %>" data-code="<%= c.code %>" data-title="<%= c.title %>" <%= idx === 0 ? 'selected' : '' %>>
+                  <%= c.code %> — <%= c.title %>
+                </option>
+              <% }) %>
+            <% } %>
+          </select>
+          <input type="hidden" id="modal-course-display">
+        </div>
+
+        <div class="uuas-form-group">
+          <label class="uuas-label" for="modal-session-title">Session Title <span class="uuas-muted">(optional)</span></label>
+          <input type="text" id="modal-session-title" name="title" class="uuas-input" placeholder="e.g. Week 5 Lecture — Module 2">
+        </div>
+
+        <!-- Date & Start Time Row -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+          <div class="uuas-form-group">
+            <label class="uuas-label" for="modal-session-date">Session Date</label>
+            <input type="date" id="modal-session-date" class="uuas-input" value="<%= new Date().toISOString().split('T')[0] %>">
+          </div>
+          <div class="uuas-form-group">
+            <label class="uuas-label" for="modal-session-time">Start Time</label>
+            <input type="time" id="modal-session-time" class="uuas-input">
+          </div>
+        </div>
+
+        <!-- Duration & Real-time End Time Preview -->
+        <div class="uuas-form-group">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.35rem">
+            <label class="uuas-label" for="modal-duration" style="margin:0">Duration (minutes)</label>
+            <span class="uuas-text-xs" id="modal-projected-end" style="color:var(--uuas-green-forest);font-weight:600"></span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 140px;gap:0.75rem">
+            <select id="modal-duration-preset" class="uuas-select">
+              <option value="15">15 minutes</option>
+              <option value="30">30 minutes</option>
+              <option value="45">45 minutes</option>
+              <option value="60" selected>60 minutes (1 hour)</option>
+              <option value="90">90 minutes (1.5 hours)</option>
+              <option value="120">120 minutes (2 hours)</option>
+              <option value="custom">Custom duration…</option>
+            </select>
+            <input type="number" id="modal-duration" name="duration_minutes" class="uuas-input" value="60" min="5" max="480">
+          </div>
+        </div>
+
+        <!-- Verification Methods -->
+        <div class="uuas-form-group" style="margin-top:1.25rem">
+          <label class="uuas-label" style="margin-bottom:0.5rem">Security & Verification Methods</label>
+          <div class="uuas-form-check" style="margin-bottom:0.75rem">
+            <input type="checkbox" id="modal-requires-gps" name="requires_gps">
+            <div>
+              <label for="modal-requires-gps" class="uuas-bold" style="cursor:pointer;display:inline-flex;align-items:center;gap:0.35rem">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                Require GPS Geofencing
+              </label>
+              <div class="uuas-text-xs uuas-muted">Students must be within the lecture venue radius</div>
+            </div>
+          </div>
+          <div class="uuas-form-check">
+            <input type="checkbox" id="modal-requires-biometric" name="requires_biometric">
+            <div>
+              <label for="modal-requires-biometric" class="uuas-bold" style="cursor:pointer;display:inline-flex;align-items:center;gap:0.35rem">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Require Biometric (WebAuthn)
+              </label>
+              <div class="uuas-text-xs uuas-muted">Students must verify with fingerprint or device lock</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="modal-gps-radius-row" style="display:none">
+          <div class="uuas-form-group">
+            <label class="uuas-label" for="modal-gps-radius">GPS Radius (meters)</label>
+            <input type="number" id="modal-gps-radius" name="gps_radius" class="uuas-input" value="100" min="20" max="2000">
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="uuas-modal-footer">
+      <button class="uuas-btn uuas-btn--ghost" id="btn-cancel-modal">Cancel</button>
+      <button class="uuas-btn uuas-btn--primary" id="btn-submit-session">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>Open Session & Generate QR</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const openSessionsData = <%- JSON.stringify(openSessions || []) %>;
+  const modal            = document.getElementById('open-session-modal');
+  const courseSelectEl   = document.getElementById('modal-course-select');
+  const courseIdEl       = document.getElementById('modal-course-id');
+  const durationInput    = document.getElementById('modal-duration');
+  const durationPreset   = document.getElementById('modal-duration-preset');
+  const sessionTimeEl    = document.getElementById('modal-session-time');
+  const projectedEndEl   = document.getElementById('modal-projected-end');
+  const gpsRadRow        = document.getElementById('modal-gps-radius-row');
+  const submitBtn        = document.getElementById('btn-submit-session');
+  const activeAlert      = document.getElementById('modal-active-alert');
+  const activeAlertMsg   = document.getElementById('modal-active-alert-msg');
+  const activeAlertLink  = document.getElementById('modal-active-alert-link');
+
+  // Set default current time
+  function setNowTime() {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2, '0');
+    const mm = String(now.getMinutes()).padStart(2, '0');
+    sessionTimeEl.value = `${hh}:${mm}`;
+    updateProjectedEnd();
+  }
+
+  function updateProjectedEnd() {
+    const mins = parseInt(durationInput.value) || 60;
+    const now = new Date();
+    const end = new Date(now.getTime() + mins * 60000);
+    projectedEndEl.textContent = `Projected Expiry: ${end.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`;
+  }
+
+  // Check if selected course has an active open session
+  function checkCourseActiveStatus(courseId) {
+    const id = parseInt(courseId);
+    const existing = openSessionsData.find(s => s.course_id === id);
+    if (existing) {
+      activeAlert.style.display = 'flex';
+      activeAlertMsg.textContent = `${existing.course_code} currently has an active broadcast session expiring at ${new Date(existing.expires_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}. You cannot create a duplicate session while the current one is live.`;
+      activeAlertLink.href = `/lecturer/session/${existing.id}`;
+      submitBtn.disabled = true;
+      submitBtn.style.opacity = '0.5';
+      submitBtn.title = 'Session already active for this course';
+    } else {
+      activeAlert.style.display = 'none';
+      submitBtn.disabled = false;
+      submitBtn.style.opacity = '1';
+      submitBtn.title = '';
+    }
+  }
+
+  function openModal(courseId) {
+    setNowTime();
+    if (courseId) {
+      courseSelectEl.value = courseId;
+      courseIdEl.value = courseId;
+    } else if (courseSelectEl.value) {
+      courseIdEl.value = courseSelectEl.value;
+    }
+    checkCourseActiveStatus(courseIdEl.value);
+    modal.classList.add('uuas-open');
+    document.getElementById('modal-session-title').focus();
+  }
+
+  function openSessionModal(btn) {
+    openModal(btn.dataset.courseId);
+  }
+
+  document.getElementById('btn-open-session-hero').addEventListener('click', () => {
+    if (courseSelectEl.options.length > 0 && courseSelectEl.options[0].value) {
+      openModal(courseSelectEl.value);
+    } else {
+      alert('You have no courses assigned. Create a course first.');
+    }
+  });
+
+  courseSelectEl.addEventListener('change', () => {
+    courseIdEl.value = courseSelectEl.value;
+    document.getElementById('modal-course-display').value = courseSelectEl.options[courseSelectEl.selectedIndex]?.text || '';
+    checkCourseActiveStatus(courseSelectEl.value);
+  });
+
+  durationPreset.addEventListener('change', () => {
+    if (durationPreset.value !== 'custom') {
+      durationInput.value = durationPreset.value;
+      updateProjectedEnd();
+    }
+  });
+
+  durationInput.addEventListener('input', () => {
+    updateProjectedEnd();
+  });
+
+  [document.getElementById('btn-close-modal'), document.getElementById('btn-cancel-modal')].forEach(b => {
+    b.addEventListener('click', () => modal.classList.remove('uuas-open'));
+  });
+
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('uuas-open'); });
+
+  document.getElementById('modal-requires-gps').addEventListener('change', (e) => {
+    gpsRadRow.style.display = e.target.checked ? '' : 'none';
+  });
+
+  // Close live session action from dashboard banner
+  document.querySelectorAll('.btn-close-live-session').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const sessId = btn.dataset.sessionId;
+      if (!confirm('Close this live session? Students will no longer be able to mark attendance.')) return;
+      try {
+        const res = await fetch(`/api/sessions/${sessId}/close`, { method: 'POST' });
+        if (res.ok) {
+          window.location.reload();
+        } else {
+          const d = await res.json();
+          alert(d.error || 'Failed to close session.');
+        }
+      } catch (err) {
+        alert('Network error while closing session.');
+      }
+    });
+  });
+
+  // Submit session creation
+  submitBtn.addEventListener('click', async () => {
+    const errEl = document.getElementById('modal-error');
+    errEl.style.display = 'none';
+
+    const selectedCourseId = courseSelectEl.value || courseIdEl.value;
+    if (!selectedCourseId) {
+      errEl.textContent = 'Please select a course.';
+      errEl.style.display = 'flex';
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Opening session…';
+
+    const body = {
+      course_id:          selectedCourseId,
+      title:              document.getElementById('modal-session-title').value,
+      duration_minutes:   parseInt(durationInput.value) || 60,
+      requires_gps:       document.getElementById('modal-requires-gps').checked,
+      requires_biometric: document.getElementById('modal-requires-biometric').checked,
+      gps_radius:         parseInt(document.getElementById('modal-gps-radius').value),
+    };
+
+    try {
+      const res = await fetch('/api/sessions/open', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        window.location.href = `/lecturer/session/${data.session.id}`;
+      } else {
+        errEl.textContent = data.error || 'Failed to open session.';
+        errEl.style.display = 'flex';
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> <span>Open Session & Generate QR</span>';
+      }
+    } catch (e) {
+      errEl.textContent = 'Network error. Please try again.';
+      errEl.style.display = 'flex';
+      submitBtn.disabled = false;
+    }
+  });
+</script>
+
+<%- include('../partials/footer') %>

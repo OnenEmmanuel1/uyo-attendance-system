@@ -1,0 +1,113 @@
+<%- include('../partials/head', { title: title }) %>
+<div class="uuas-app">
+  <%- include('../partials/sidebar-admin') %>
+  <div class="uuas-main">
+    <%- include('../partials/navbar', { topbarTitle: 'System Reports' }) %>
+    <div class="uuas-content">
+      <div class="uuas-page-header uuas-mb-6">
+        <div>
+          <h1 class="uuas-h2">System-Wide Analytics & Reports</h1>
+          <p class="uuas-text-sm uuas-muted" style="margin-top:0.25rem">Identify at-risk students below attendance thresholds across all university courses.</p>
+        </div>
+      </div>
+
+      <!-- Threshold control card -->
+      <div class="uuas-card uuas-mb-6" style="max-width:440px">
+        <div class="uuas-card-body" style="padding:1.25rem">
+          <form method="GET" action="/admin/reports">
+            <div class="uuas-form-group" style="margin-bottom:0.75rem">
+              <label class="uuas-label" for="threshold">At-Risk Attendance Threshold (%)</label>
+              <input type="number" id="threshold" name="threshold" class="uuas-input" value="<%= threshold %>" min="1" max="100">
+              <div class="uuas-input-help">Students below this percentage trigger early academic warnings.</div>
+            </div>
+            <button type="submit" class="uuas-btn uuas-btn--primary uuas-btn--sm">Apply Threshold</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- At-risk list (TeamHub Style) -->
+      <div class="uuas-card">
+        <div class="uuas-table-card-header">
+          <div>
+            <h2 class="uuas-h3">
+              At-Risk Flagged Students
+              <span class="uuas-pill uuas-pill--danger" style="margin-left:0.5rem"><%= atRisk.length %> Flagged</span>
+            </h2>
+            <p class="uuas-text-xs uuas-muted" style="margin-top:2px">Showing students with attendance below <%= threshold %>%</p>
+          </div>
+          <% if (atRisk.length && courses.length > 0) { %>
+            <a href="/api/attendance/course/<%= courses[0]?.id %>/export" class="uuas-btn uuas-btn--outline uuas-btn--sm">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Export CSV
+            </a>
+          <% } %>
+        </div>
+
+        <% if (!atRisk.length) { %>
+          <div class="uuas-empty">
+            <div style="display:flex;align-items:center;justify-content:center;margin-bottom:0.75rem;color:var(--uuas-green)">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/></svg>
+            </div>
+            <p class="uuas-bold">No at-risk students found</p>
+            <p class="uuas-text-sm uuas-muted">All active students meet or exceed the <%= threshold %>% attendance threshold.</p>
+          </div>
+        <% } else { %>
+          <div class="uuas-table-wrapper">
+            <table class="uuas-table" aria-label="At-risk students">
+              <thead>
+                <tr>
+                  <th scope="col">Student ↕</th>
+                  <th scope="col">Matric No. ↕</th>
+                  <th scope="col">Department ↕</th>
+                  <th scope="col">Course Module ↕</th>
+                  <th scope="col">Attended ↕</th>
+                  <th scope="col">Attendance Rate ↕</th>
+                  <th scope="col">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% atRisk.forEach(r => { %>
+                  <tr>
+                    <td>
+                      <div class="uuas-table-user-cell">
+                        <div class="uuas-avatar-circle"><%= r.name.charAt(0).toUpperCase() %></div>
+                        <span class="uuas-table-user-name"><%= r.name %></span>
+                      </div>
+                    </td>
+                    <td class="uuas-table-user-sub"><%= r.matric %></td>
+                    <td class="uuas-text-sm uuas-muted"><%= r.department || '—' %></td>
+                    <td>
+                      <span class="uuas-pill uuas-pill--ontime"><%= r.course_code %></span>
+                      <span class="uuas-text-xs uuas-muted" style="margin-left:0.35rem"><%= r.course_title %></span>
+                    </td>
+                    <td class="uuas-text-sm"><%= r.sessions_attended %> / <%= r.total_sessions %></td>
+                    <td style="min-width:130px">
+                      <div class="uuas-flex uuas-items-center uuas-gap-2">
+                        <div class="uuas-progress" style="flex:1">
+                          <div class="uuas-progress-bar uuas-progress-bar--danger" style="width:<%= r.percentage %>%"></div>
+                        </div>
+                        <span class="uuas-text-sm uuas-bold" style="color:var(--uuas-red);min-width:32px"><%= r.percentage %>%</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="uuas-pill uuas-pill--danger">At Risk</span>
+                    </td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+          <div class="uuas-pagination-row">
+            <span>Showing <%= atRisk.length %> at-risk records</span>
+            <div class="uuas-pagination-controls">
+              <button class="uuas-page-btn">‹</button>
+              <button class="uuas-page-btn uuas-page-active">1</button>
+              <button class="uuas-page-btn">›</button>
+            </div>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+<%- include('../partials/footer') %>

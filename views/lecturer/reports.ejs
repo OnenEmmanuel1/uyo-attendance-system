@@ -1,0 +1,300 @@
+<%- include('../partials/head', { title: title }) %>
+<div class="uuas-app">
+  <%- include('../partials/sidebar-lecturer') %>
+  <div class="uuas-main">
+    <%- include('../partials/navbar', { topbarTitle: 'Course Reports' }) %>
+    <div class="uuas-content">
+      <div class="uuas-page-header uuas-mb-6">
+        <div>
+          <h1 class="uuas-h2">Attendance Reports</h1>
+          <p class="uuas-text-sm uuas-muted" style="margin-top:0.25rem">Course-level attendance summary, student percentages, and at-risk monitoring.</p>
+        </div>
+      </div>
+
+      <!-- Course selector -->
+      <div class="uuas-card uuas-mb-6" style="max-width:440px">
+        <div class="uuas-card-body" style="padding:1.25rem">
+          <form method="GET" action="/lecturer/reports">
+            <div class="uuas-form-group" style="margin-bottom:0">
+              <label class="uuas-label" for="course_id">Select Course Module</label>
+              <select name="course_id" id="course_id" class="uuas-select" onchange="this.form.submit()">
+                <option value="">— Choose a course —</option>
+                <% courses.forEach(c => { %>
+                  <option value="<%= c.id %>" <%= selCourse && selCourse.id === c.id ? 'selected' : '' %>><%= c.code %> — <%= c.title %></option>
+                <% }) %>
+              </select>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <% if (report && selCourse) { %>
+        <% const atRisk = report.filter(r => r.at_risk); %>
+        <!-- Summary Metric Row -->
+        <div class="uuas-stat-grid" style="margin-bottom:1.5rem">
+          <div class="uuas-summary-card--mint">
+            <div class="uuas-summary-title">Total Enrolled</div>
+            <div class="uuas-summary-val-row">
+              <div class="uuas-summary-value"><%= report.length %></div>
+              <div class="uuas-summary-delta">Students</div>
+            </div>
+            <div class="uuas-summary-footer">
+              <span><%= selCourse.code %> Roster</span>
+            </div>
+          </div>
+
+          <div class="uuas-summary-card--green">
+            <div class="uuas-summary-title">Good Standing</div>
+            <div class="uuas-summary-val-row">
+              <div class="uuas-summary-value"><%= report.length - atRisk.length %></div>
+              <div class="uuas-summary-delta">Compliant</div>
+            </div>
+            <div class="uuas-summary-footer">
+              <span>Meeting attendance threshold</span>
+            </div>
+          </div>
+
+          <div class="uuas-summary-card--dark">
+            <div class="uuas-summary-title">At-Risk Students</div>
+            <div class="uuas-summary-val-row">
+              <div class="uuas-summary-value"><%= atRisk.length %></div>
+              <div class="uuas-summary-delta"><%= atRisk.length > 0 ? 'Warning' : 'None' %></div>
+            </div>
+            <div class="uuas-summary-footer">
+              <span>Below minimum attendance</span>
+            </div>
+          </div>
+        </div>
+
+        <% if (atRisk.length > 0) { %>
+          <div class="uuas-alert uuas-alert--warning" style="margin-bottom:1.5rem">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <div>
+              <strong><%= atRisk.length %> student<%= atRisk.length !== 1 ? 's' : '' %></strong> currently below attendance threshold in <%= selCourse.code %>.
+            </div>
+          </div>
+        <% } %>
+
+        <div class="uuas-card">
+          <div class="uuas-table-card-header">
+            <div>
+              <h2 class="uuas-h3"><%= selCourse.code %> — <%= selCourse.title %></h2>
+              <p class="uuas-text-xs uuas-muted" style="margin-top:2px">Student breakdown and percentage</p>
+            </div>
+            <a href="/api/attendance/course/<%= selCourse.id %>/export" class="uuas-btn uuas-btn--outline uuas-btn--sm" style="display:inline-flex;align-items:center;gap:0.4rem">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span>Export CSV</span>
+            </a>
+          </div>
+
+          <div class="uuas-table-wrapper">
+            <table class="uuas-table" aria-label="Course attendance report">
+              <thead>
+                <tr>
+                  <th scope="col">Student ↕</th>
+                  <th scope="col">Matric No. ↕</th>
+                  <th scope="col">Attended ↕</th>
+                  <th scope="col">Total Sessions ↕</th>
+                  <th scope="col">Attendance % ↕</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" style="text-align:right">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% report.forEach((r, idx) => { %>
+                  <tr>
+                    <td>
+                      <div class="uuas-table-user-cell" style="cursor:pointer" onclick="viewStudentProfile(<%= idx %>)" title="Click to view student profile">
+                        <div class="uuas-avatar-circle">
+                          <% if (r.avatar_url) { %>
+                            <img src="<%= r.avatar_url %>" alt="<%= r.name %>" class="uuas-avatar-img">
+                          <% } else { %>
+                            <%= r.name.charAt(0).toUpperCase() %>
+                          <% } %>
+                        </div>
+                        <div>
+                          <span class="uuas-table-user-name" style="color:var(--uuas-green-forest);font-weight:600"><%= r.name %></span>
+                          <div class="uuas-text-xs uuas-muted"><%= r.email || '' %></div>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="uuas-table-user-sub"><%= r.matric %></td>
+                    <td class="uuas-text-sm"><%= r.sessions_attended %></td>
+                    <td class="uuas-text-sm uuas-muted"><%= r.total_sessions %></td>
+                    <td style="min-width:140px">
+                      <div class="uuas-flex uuas-items-center uuas-gap-2">
+                        <div class="uuas-progress" style="flex:1">
+                          <div class="uuas-progress-bar uuas-progress-bar--<%= r.at_risk ? 'danger' : 'success' %>"
+                               style="width:<%= r.percentage %>%"
+                               role="progressbar"
+                               aria-valuenow="<%= r.percentage %>"
+                               aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <span class="uuas-text-sm uuas-bold" style="color:var(--uuas-<%= r.at_risk ? 'red' : 'green' %>);min-width:36px"><%= r.percentage %>%</span>
+                      </div>
+                    </td>
+                    <td>
+                      <% if (r.at_risk) { %>
+                        <span class="uuas-pill uuas-pill--danger">At Risk</span>
+                      <% } else { %>
+                        <span class="uuas-pill uuas-pill--ontime">Good</span>
+                      <% } %>
+                    </td>
+                    <td style="text-align:right">
+                      <button
+                        type="button"
+                        class="uuas-btn uuas-btn--outline uuas-btn--sm"
+                        onclick="viewStudentProfile(<%= idx %>)"
+                        style="display:inline-flex;align-items:center;gap:0.35rem"
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                        <span>Profile</span>
+                      </button>
+                    </td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+          <div class="uuas-pagination-row">
+            <span>Showing <%= report.length %> student records</span>
+            <div class="uuas-pagination-controls">
+              <button class="uuas-page-btn">‹</button>
+              <button class="uuas-page-btn uuas-page-active">1</button>
+              <button class="uuas-page-btn">›</button>
+            </div>
+          </div>
+        </div>
+      <% } else if (!selCourse) { %>
+        <div class="uuas-card">
+          <div class="uuas-empty">
+            <div style="display:flex;align-items:center;justify-content:center;margin-bottom:0.75rem;color:var(--uuas-gray-400)">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            </div>
+            <p class="uuas-bold">Select a course module above</p>
+            <p class="uuas-text-sm uuas-muted">Choose any course to view full attendance metrics and export reports.</p>
+          </div>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</div>
+
+<!-- Student Profile Modal for Lecturers -->
+<div class="uuas-modal-backdrop" id="student-profile-modal" role="dialog" aria-modal="true" aria-labelledby="sp-modal-name">
+  <div class="uuas-modal" style="max-width:520px">
+    <div class="uuas-modal-header" style="background:#ecfdf5;border-bottom:1px solid #d1fae5">
+      <div class="uuas-flex uuas-items-center uuas-gap-2">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#065f46" stroke-width="2" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        <h2 class="uuas-h3" style="color:#064e3b;margin:0">Student Profile</h2>
+      </div>
+      <button class="uuas-btn uuas-btn--ghost uuas-btn--sm" id="btn-close-sp-modal" aria-label="Close dialog" style="display:flex;align-items:center;justify-content:center;padding:4px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="uuas-modal-body">
+      <!-- Profile Header -->
+      <div style="display:flex;align-items:center;gap:1.25rem;padding-bottom:1.25rem;border-bottom:1px solid var(--uuas-border)">
+        <div class="uuas-profile-avatar-large" style="width:76px;height:76px;font-size:1.75rem" id="sp-avatar-box">
+          <span id="sp-avatar-initial">S</span>
+        </div>
+        <div>
+          <h3 class="uuas-h3" id="sp-name" style="margin:0">Student Name</h3>
+          <div style="font-size:0.875rem;color:var(--uuas-gray-600);margin-top:0.25rem" id="sp-matric">CSC/2021/001</div>
+          <div style="display:flex;gap:0.5rem;margin-top:0.5rem">
+            <span class="uuas-pill uuas-pill--ontime">Verified Student</span>
+            <span class="uuas-pill uuas-pill--leave" id="sp-dept">Computer Science</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Student Details List -->
+      <div style="margin-top:1.25rem">
+        <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--uuas-gray-400);margin-bottom:0.75rem">Contact & Academic Info</div>
+        <dl style="display:grid;grid-template-columns:max-content 1fr;gap:0.65rem 1.25rem;font-size:0.875rem">
+          <dt class="uuas-muted">Email</dt>
+          <dd class="uuas-bold" id="sp-email">—</dd>
+          <dt class="uuas-muted">Phone</dt>
+          <dd id="sp-phone">—</dd>
+          <dt class="uuas-muted">Department</dt>
+          <dd id="sp-department-val">—</dd>
+          <dt class="uuas-muted">Enrolled Course</dt>
+          <dd class="uuas-bold" id="sp-course-val"><%= selCourse ? selCourse.code + ' — ' + selCourse.title : '—' %></dd>
+        </dl>
+      </div>
+
+      <!-- Course Attendance Performance Breakdown -->
+      <div style="margin-top:1.5rem;background:var(--uuas-gray-50);border:1px solid var(--uuas-border);border-radius:var(--uuas-r-lg);padding:1.15rem">
+        <div style="font-size:0.8125rem;font-weight:700;color:var(--uuas-gray-900);margin-bottom:0.75rem">Course Attendance Summary</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.85rem">
+          <div style="background:#ffffff;padding:0.65rem 0.85rem;border-radius:var(--uuas-r-md);border:1px solid var(--uuas-border)">
+            <div class="uuas-text-xs uuas-muted">Sessions Attended</div>
+            <div class="uuas-bold" style="font-size:1.25rem;color:var(--uuas-green-forest)" id="sp-sessions-attended">0</div>
+          </div>
+          <div style="background:#ffffff;padding:0.65rem 0.85rem;border-radius:var(--uuas-r-md);border:1px solid var(--uuas-border)">
+            <div class="uuas-text-xs uuas-muted">Total Held Sessions</div>
+            <div class="uuas-bold" style="font-size:1.25rem;color:var(--uuas-gray-800)" id="sp-total-sessions">0</div>
+          </div>
+        </div>
+
+        <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.35rem">
+            <span class="uuas-text-xs uuas-muted">Attendance Rate</span>
+            <span class="uuas-bold" style="font-size:0.875rem" id="sp-pct-text">0%</span>
+          </div>
+          <div class="uuas-progress" style="height:8px">
+            <div class="uuas-progress-bar uuas-progress-bar--success" id="sp-progress-bar" style="width:0%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="uuas-modal-footer">
+      <button class="uuas-btn uuas-btn--primary uuas-btn--sm" id="btn-close-sp-modal-footer" style="width:100%">Close Profile</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const reportData = <%- JSON.stringify(report || []) %>;
+  const spModal    = document.getElementById('student-profile-modal');
+
+  function viewStudentProfile(index) {
+    const s = reportData[index];
+    if (!s) return;
+
+    document.getElementById('sp-name').textContent = s.name || 'Student';
+    document.getElementById('sp-matric').textContent = s.matric || '—';
+    document.getElementById('sp-dept').textContent = s.department || 'Computer Science';
+    document.getElementById('sp-email').textContent = s.email || '—';
+    document.getElementById('sp-phone').textContent = s.phone || 'Not provided';
+    document.getElementById('sp-department-val').textContent = s.department || '—';
+
+    document.getElementById('sp-sessions-attended').textContent = s.sessions_attended;
+    document.getElementById('sp-total-sessions').textContent = s.total_sessions;
+    document.getElementById('sp-pct-text').textContent = `${s.percentage}% (${s.at_risk ? 'At Risk' : 'Good Standing'})`;
+    document.getElementById('sp-pct-text').style.color = s.at_risk ? 'var(--uuas-red)' : 'var(--uuas-green-forest)';
+
+    const bar = document.getElementById('sp-progress-bar');
+    bar.style.width = `${s.percentage}%`;
+    bar.className = `uuas-progress-bar uuas-progress-bar--${s.at_risk ? 'danger' : 'success'}`;
+
+    const avatarBox = document.getElementById('sp-avatar-box');
+    if (s.avatar_url) {
+      avatarBox.innerHTML = `<img src="${s.avatar_url}" alt="${s.name}" class="uuas-avatar-img">`;
+    } else {
+      avatarBox.innerHTML = `<span>${(s.name || 'S').charAt(0).toUpperCase()}</span>`;
+    }
+
+    spModal.classList.add('uuas-open');
+  }
+
+  [document.getElementById('btn-close-sp-modal'), document.getElementById('btn-close-sp-modal-footer')].forEach(btn => {
+    if (btn) btn.addEventListener('click', () => spModal.classList.remove('uuas-open'));
+  });
+
+  spModal.addEventListener('click', (e) => {
+    if (e.target === spModal) spModal.classList.remove('uuas-open');
+  });
+</script>
+
+<%- include('../partials/footer') %>

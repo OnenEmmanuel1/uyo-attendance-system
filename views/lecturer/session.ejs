@@ -1,0 +1,287 @@
+<%- include('../partials/head', { title: title }) %>
+<div class="uuas-app">
+  <%- include('../partials/sidebar-lecturer') %>
+  <div class="uuas-main">
+    <%- include('../partials/navbar', { topbarTitle: 'Live Attendance Monitor' }) %>
+    <div class="uuas-content">
+      <!-- Session closed banner -->
+      <div id="uuas-session-closed-banner" class="uuas-alert uuas-alert--warning uuas-hidden" style="display:none" role="status">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Session has been closed. Students can no longer mark attendance.
+      </div>
+
+      <!-- Top info bar -->
+      <div class="uuas-flex-between uuas-mb-6" style="flex-wrap:wrap;gap:1rem">
+        <div>
+          <div class="uuas-flex uuas-items-center uuas-gap-3">
+            <h1 class="uuas-h2"><%= session.course_code %> — Live Attendance Session</h1>
+            <% if (!session.closed_at) { %>
+              <span class="uuas-pill uuas-pill--ontime" style="display:inline-flex;align-items:center;gap:6px">
+                <span class="uuas-live-dot"></span> LIVE
+              </span>
+            <% } else { %>
+              <span class="uuas-pill uuas-pill--leave">Closed</span>
+            <% } %>
+          </div>
+          <p class="uuas-text-sm uuas-muted" style="margin-top:0.25rem"><%= session.course_title %> — <%= session.title || 'Lecture Attendance' %></p>
+        </div>
+        <div class="uuas-flex uuas-gap-2">
+          <% if (!session.closed_at) { %>
+            <button class="uuas-btn uuas-btn--danger" id="btn-close-session"
+                    data-session-id="<%= session.id %>"
+                    data-confirm="Close this session? Students will no longer be able to mark attendance.">
+              Close Session
+            </button>
+          <% } %>
+          <a href="/api/attendance/session/<%= session.id %>/export" class="uuas-btn uuas-btn--outline">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export CSV
+          </a>
+          <a href="/lecturer/dashboard" class="uuas-btn uuas-btn--ghost">← Dashboard</a>
+        </div>
+      </div>
+
+      <!-- 3 Live Summary Metric Cards -->
+      <%
+        const presentCount = attendance.filter(r => r.is_present).length;
+        const totalEnrolled = session.enrolled_count || 0;
+        const pendingCount = Math.max(0, totalEnrolled - presentCount);
+      %>
+      <div class="uuas-stat-grid" style="margin-bottom:1.5rem">
+        <div class="uuas-summary-card--mint">
+          <div class="uuas-summary-title">Marked Present</div>
+          <div class="uuas-summary-val-row">
+            <div class="uuas-summary-value" id="uuas-live-count"><%= presentCount %></div>
+            <div class="uuas-summary-delta">Verified</div>
+          </div>
+          <div class="uuas-summary-footer">
+            <span>Students verified in class</span>
+          </div>
+        </div>
+
+        <div class="uuas-summary-card--green">
+          <div class="uuas-summary-title">Not Yet Marked</div>
+          <div class="uuas-summary-val-row">
+            <div class="uuas-summary-value"><%= pendingCount %></div>
+            <div class="uuas-summary-delta">Pending</div>
+          </div>
+          <div class="uuas-summary-footer">
+            <span>Waiting for check-in</span>
+          </div>
+        </div>
+
+        <div class="uuas-summary-card--dark">
+          <div class="uuas-summary-title">Total Enrolled</div>
+          <div class="uuas-summary-val-row">
+            <div class="uuas-summary-value"><%= totalEnrolled %></div>
+            <div class="uuas-summary-delta">Students</div>
+          </div>
+          <div class="uuas-summary-footer">
+            <span>Total class roster</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="uuas-grid-2" style="gap:1.5rem;align-items:start">
+        <!-- QR Code Panel & Details -->
+        <div>
+          <div class="uuas-card uuas-mb-4">
+            <div class="uuas-card-header">
+              <h2 class="uuas-h3">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="display:inline;vertical-align:middle;margin-right:6px"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                Classroom QR Code
+              </h2>
+            </div>
+            <div class="uuas-card-body">
+              <div class="uuas-qr-container">
+                <img src="<%= qrDataUrl %>" alt="Attendance QR Code for session <%= session.id %>" class="uuas-qr-image" id="uuas-qr-img">
+                <div class="uuas-text-xs uuas-muted uuas-text-center">Display on projector or screen for students to scan</div>
+                <div class="uuas-qr-token" aria-label="Session token"><%= session.session_token %></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Session Details -->
+          <div class="uuas-card">
+            <div class="uuas-card-header"><h2 class="uuas-h3">Session Parameters</h2></div>
+            <div class="uuas-card-body">
+              <dl style="display:grid;grid-template-columns:max-content 1fr;gap:0.75rem 1rem;font-size:0.875rem">
+                <dt class="uuas-muted">Venue</dt>
+                <dd class="uuas-bold"><%= session.venue_name || 'Not set' %></dd>
+                <dt class="uuas-muted">GPS Verification</dt>
+                <dd><% if (session.requires_gps) { %><span class="uuas-pill uuas-pill--ontime">Active (±<%= session.gps_radius_meters %>m)</span><% } else { %><span class="uuas-pill uuas-pill--leave">Disabled</span><% } %></dd>
+                <dt class="uuas-muted">Biometric Auth</dt>
+                <dd><% if (session.requires_biometric) { %><span class="uuas-pill uuas-pill--late">WebAuthn Required</span><% } else { %><span class="uuas-pill uuas-pill--leave">Disabled</span><% } %></dd>
+                <dt class="uuas-muted">Opened At</dt>
+                <dd><%= new Date(session.opened_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) %></dd>
+                <dt class="uuas-muted">Expires At</dt>
+                <dd><%= new Date(session.expires_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) %></dd>
+              </dl>
+
+              <div class="uuas-timer" style="margin-top:1.25rem">
+                <div class="uuas-timer-value" id="uuas-timer-value">—</div>
+                <div class="uuas-timer-label">Session Time Remaining</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Column 2: Live Attendance List & Manual Override -->
+        <div>
+          <div class="uuas-card">
+            <div class="uuas-card-header">
+              <div>
+                <h2 class="uuas-h3">Live Attendee Roster</h2>
+                <p class="uuas-text-xs uuas-muted" style="margin-top:2px">Real-time attendance check-in feed</p>
+              </div>
+              <span class="uuas-pill uuas-pill--ontime" style="display:inline-flex;align-items:center;gap:6px">
+                <span class="uuas-live-dot"></span> Live Polling
+              </span>
+            </div>
+            <div class="uuas-table-wrapper">
+              <table class="uuas-table" aria-label="Live attendance list" aria-live="polite">
+                <thead>
+                  <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Student ↕</th>
+                    <th scope="col">Matric No. ↕</th>
+                    <th scope="col">Method ↕</th>
+                    <th scope="col">Time ↕</th>
+                  </tr>
+                </thead>
+                <tbody id="uuas-live-list">
+                  <% if (!attendance.length) { %>
+                    <tr><td colspan="5" style="padding:2.5rem;text-align:center;color:var(--uuas-text-muted)">Waiting for students to scan QR code...</td></tr>
+                  <% } else { %>
+                    <% attendance.forEach((r, i) => { %>
+                      <tr>
+                        <td class="uuas-text-xs uuas-muted"><%= i+1 %></td>
+                        <td>
+                          <div class="uuas-table-user-cell">
+                            <div class="uuas-avatar-circle"><%= r.student_name.charAt(0).toUpperCase() %></div>
+                            <span class="uuas-table-user-name"><%= r.student_name %></span>
+                          </div>
+                        </td>
+                        <td class="uuas-table-user-sub"><%= r.matric %></td>
+                        <td>
+                          <div class="uuas-method-cell">
+                            <span class="uuas-method-dot uuas-method-dot--<%= r.method %>"></span>
+                            <span class="uuas-pill uuas-pill--ontime"><%= r.method.toUpperCase() %></span>
+                          </div>
+                        </td>
+                        <td class="uuas-text-xs uuas-muted"><%= r.marked_at ? new Date(r.marked_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}) : '—' %></td>
+                      </tr>
+                    <% }) %>
+                  <% } %>
+                </tbody>
+              </table>
+            </div>
+            <!-- Manual correction footer -->
+            <div class="uuas-card-footer">
+              <button class="uuas-btn uuas-btn--outline uuas-btn--sm" id="btn-manual-mark" style="display:inline-flex;align-items:center;gap:0.4rem">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                <span>Manual Attendance Override</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Manual correction form (appears directly under the former section when clicked) -->
+          <div id="manual-form" class="uuas-card uuas-mt-4" style="display:none;border-color:var(--uuas-green);box-shadow:var(--uuas-shadow-md)">
+            <div class="uuas-card-header" style="background:#ecfdf5;border-bottom:1px solid #d1fae5">
+              <div class="uuas-flex uuas-items-center uuas-gap-2">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#065f46" stroke-width="2" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                <h2 class="uuas-h3" style="color:#064e3b">Manual Attendance Correction</h2>
+              </div>
+            </div>
+            <div class="uuas-card-body">
+              <div id="manual-error" class="uuas-alert uuas-alert--error" style="display:none" role="alert"></div>
+              <div id="manual-success" class="uuas-alert uuas-alert--success" style="display:none" role="status"></div>
+              <div class="uuas-form-group">
+                <label class="uuas-label" for="manual-student-id">Student Database ID</label>
+                <input type="number" id="manual-student-id" class="uuas-input" placeholder="Enter student numeric ID">
+              </div>
+              <div class="uuas-form-group">
+                <label class="uuas-label" for="manual-action">Status Override</label>
+                <select id="manual-action" class="uuas-select">
+                  <option value="added">Mark Present (Verified)</option>
+                  <option value="removed">Mark Absent</option>
+                </select>
+              </div>
+              <div class="uuas-form-group">
+                <label class="uuas-label" for="manual-reason">Audit Reason <span style="color:var(--uuas-red)">*</span></label>
+                <textarea id="manual-reason" class="uuas-textarea" placeholder="Explain why this correction is being recorded in the audit log..."></textarea>
+              </div>
+              <div class="uuas-flex uuas-gap-3">
+                <button class="uuas-btn uuas-btn--primary" id="btn-submit-manual">Save Correction</button>
+                <button class="uuas-btn uuas-btn--ghost" id="btn-cancel-manual">Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  window.UUAS_SESSION_ID  = <%= session.id %>;
+  window.UUAS_EXPIRES_AT  = '<%= session.expires_at %>';
+</script>
+<script src="/js/session-monitor.js"></script>
+
+<script>
+  // Close session
+  document.getElementById('btn-close-session')?.addEventListener('click', async function() {
+    if (!confirm('Close this session? Students will no longer be able to mark attendance.')) return;
+    const res  = await fetch(`/api/sessions/<%= session.id %>/close`, { method: 'POST' });
+    if (res.ok) {
+      window.location.reload();
+    } else {
+      const d = await res.json();
+      alert(d.error || 'Failed to close session');
+    }
+  });
+
+  // Manual mark toggle
+  document.getElementById('btn-manual-mark').addEventListener('click', () => {
+    const f = document.getElementById('manual-form');
+    const isHidden = f.style.display === 'none';
+    f.style.display = isHidden ? 'block' : 'none';
+    if (isHidden) {
+      f.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      document.getElementById('manual-student-id')?.focus();
+    }
+  });
+  document.getElementById('btn-cancel-manual').addEventListener('click', () => {
+    document.getElementById('manual-form').style.display = 'none';
+  });
+
+  document.getElementById('btn-submit-manual').addEventListener('click', async () => {
+    const errEl = document.getElementById('manual-error');
+    const sucEl = document.getElementById('manual-success');
+    errEl.style.display = 'none'; sucEl.style.display = 'none';
+    const studentId = document.getElementById('manual-student-id').value;
+    const action    = document.getElementById('manual-action').value;
+    const reason    = document.getElementById('manual-reason').value;
+    if (!studentId || !reason.trim()) {
+      errEl.textContent = 'Student ID and reason are required.';
+      errEl.style.display = 'flex';
+      return;
+    }
+    const res = await fetch('/api/attendance/manual', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ session_id: <%= session.id %>, student_id: studentId, action, reason, set_present: action === 'added' }),
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      sucEl.textContent = `Correction saved. Audit trail recorded.`;
+      sucEl.style.display = 'flex';
+    } else {
+      errEl.textContent = data.error || 'Failed to save correction.';
+      errEl.style.display = 'flex';
+    }
+  });
+</script>
+
+<%- include('../partials/footer') %>

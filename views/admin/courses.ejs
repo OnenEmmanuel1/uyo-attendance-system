@@ -1,0 +1,83 @@
+<%- include('../partials/head', { title: title }) %>
+<div class="uuas-app">
+  <%- include('../partials/sidebar-admin') %>
+  <div class="uuas-main">
+    <%- include('../partials/navbar', { topbarTitle: 'Course Management' }) %>
+    <div class="uuas-content">
+      <div class="uuas-page-header uuas-mb-6">
+        <div>
+          <h1 class="uuas-h2">Course Directory</h1>
+          <p class="uuas-text-sm uuas-muted" style="margin-top:0.25rem">All courses registered in the system. Manage faculty assignment and student rosters.</p>
+        </div>
+      </div>
+
+      <div class="uuas-card">
+        <div class="uuas-table-card-header">
+          <div>
+            <h2 class="uuas-h3">Courses List</h2>
+            <p class="uuas-text-xs uuas-muted" style="margin-top:2px">Lecturer assignments and enrollment metrics</p>
+          </div>
+          <div class="uuas-table-controls">
+            <div class="uuas-table-search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" placeholder="Search course..." aria-label="Search courses">
+            </div>
+          </div>
+        </div>
+
+        <div class="uuas-table-wrapper">
+          <table class="uuas-table" aria-label="Courses list">
+            <thead>
+              <tr>
+                <th scope="col">Code ↕</th>
+                <th scope="col">Title ↕</th>
+                <th scope="col">Assigned Lecturer ↕</th>
+                <th scope="col">Department ↕</th>
+                <th scope="col">Enrolled ↕</th>
+                <th scope="col" class="uuas-text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% if (!courses.length) { %>
+                <tr><td colspan="6" class="uuas-empty">No courses found.</td></tr>
+              <% } %>
+              <% courses.forEach(c => { %>
+                <tr>
+                  <td>
+                    <div class="uuas-table-user-cell">
+                      <div class="uuas-avatar-circle"><%= c.code.substring(0,2) %></div>
+                      <span class="uuas-pill uuas-pill--ontime"><%= c.code %></span>
+                    </div>
+                  </td>
+                  <td><span class="uuas-bold"><%= c.title %></span></td>
+                  <td>
+                    <div class="uuas-method-cell">
+                      <span class="uuas-method-dot uuas-method-dot--qr"></span>
+                      <span class="uuas-text-sm"><%= c.lecturer_name %></span>
+                    </div>
+                  </td>
+                  <td class="uuas-text-sm uuas-muted"><%= c.department || '—' %></td>
+                  <td>
+                    <span class="uuas-bold" style="color:var(--uuas-gray-800)"><%= c.enrolled_count %> students</span>
+                  </td>
+                  <td class="uuas-text-right">
+                    <a href="/admin/courses/<%= c.id %>/enroll" class="uuas-btn uuas-btn--primary uuas-btn--sm">Manage Enrollment</a>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+        <div class="uuas-pagination-row">
+          <span>Showing <%= courses.length %> course modules</span>
+          <div class="uuas-pagination-controls">
+            <button class="uuas-page-btn">‹</button>
+            <button class="uuas-page-btn uuas-page-active">1</button>
+            <button class="uuas-page-btn">›</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<%- include('../partials/footer') %>

@@ -1,0 +1,128 @@
+<%- include('../partials/head', { title: title }) %>
+<div class="uuas-app">
+  <%- include('../partials/sidebar-student') %>
+  <div class="uuas-main">
+    <%- include('../partials/navbar', { topbarTitle: 'Attendance History' }) %>
+    <div class="uuas-content">
+      <div class="uuas-page-header uuas-mb-6">
+        <div>
+          <h1 class="uuas-h2">Attendance History</h1>
+          <p class="uuas-text-sm uuas-muted" style="margin-top:0.25rem">Your complete session-by-session attendance logs across all enrolled courses.</p>
+        </div>
+      </div>
+
+      <!-- Per-course summary metric cards -->
+      <div class="uuas-stat-grid" style="margin-bottom:1.5rem">
+        <% courses.forEach((c, idx) => { 
+            const cardClass = c.at_risk ? 'uuas-summary-card--dark' : (idx % 2 === 0 ? 'uuas-summary-card--mint' : 'uuas-summary-card--green');
+        %>
+          <div class="<%= cardClass %>">
+            <div class="uuas-summary-title"><%= c.code %></div>
+            <div class="uuas-summary-val-row">
+              <div class="uuas-summary-value"><%= c.percentage !== null ? c.percentage + '%' : '—' %></div>
+              <div class="uuas-summary-delta"><%= c.at_risk ? 'At Risk' : 'Compliant' %></div>
+            </div>
+            <div class="uuas-summary-footer">
+              <span class="uuas-truncate"><%= c.title %></span>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+
+      <!-- Full history table (TeamHub Style) -->
+      <div class="uuas-card">
+        <div class="uuas-table-card-header">
+          <div>
+            <h2 class="uuas-h3">Attendance Activity Log</h2>
+            <p class="uuas-text-xs uuas-muted" style="margin-top:2px">Verification method, marked timestamp, and geofence accuracy</p>
+          </div>
+          <div class="uuas-table-controls">
+            <div class="uuas-table-search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" placeholder="Search record..." aria-label="Search records">
+            </div>
+          </div>
+        </div>
+
+        <% if (!history.length) { %>
+          <div class="uuas-empty">
+            <div style="display:flex;align-items:center;justify-content:center;margin-bottom:0.75rem;color:var(--uuas-gray-400)">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <p class="uuas-bold">No attendance records found.</p>
+            <p class="uuas-text-sm uuas-muted">Mark attendance in live classroom sessions to populate your history.</p>
+          </div>
+        <% } else { %>
+          <div class="uuas-table-wrapper">
+            <table class="uuas-table" aria-label="Attendance history">
+              <thead>
+                <tr>
+                  <th scope="col">Course ↕</th>
+                  <th scope="col">Session ↕</th>
+                  <th scope="col">Date ↕</th>
+                  <th scope="col">Method ↕</th>
+                  <th scope="col">GPS Accuracy ↕</th>
+                  <th scope="col">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% history.forEach(r => { %>
+                  <% if (r.opened_at) { %>
+                  <tr>
+                    <td>
+                      <div class="uuas-table-user-cell">
+                        <div class="uuas-avatar-circle"><%= r.course_code.substring(0,2) %></div>
+                        <div>
+                          <div class="uuas-table-user-name"><%= r.course_code %></div>
+                          <div class="uuas-table-user-sub"><%= r.course_title %></div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="uuas-bold"><%= r.session_title || 'Class Session' %></span>
+                    </td>
+                    <td class="uuas-text-sm uuas-muted">
+                      <%= r.opened_at ? new Date(r.opened_at).toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'}) : '—' %>
+                    </td>
+                    <td>
+                      <% if (r.method) { %>
+                        <div class="uuas-method-cell">
+                          <span class="uuas-method-dot uuas-method-dot--<%= r.method %>"></span>
+                          <span class="uuas-pill uuas-pill--ontime"><%= r.method.toUpperCase() %></span>
+                        </div>
+                      <% } else { %>—<% } %>
+                    </td>
+                    <td class="uuas-text-sm uuas-muted">
+                      <% if (r.gps_distance_meters !== null && r.gps_distance_meters !== undefined) { %>
+                        <span class="uuas-bold" style="color:var(--uuas-gray-800)"><%= r.gps_distance_meters %>m</span>
+                      <% } else { %>—<% } %>
+                    </td>
+                    <td>
+                      <% if (r.is_present) { %>
+                        <span class="uuas-pill uuas-pill--ontime">Present</span>
+                      <% } else if (r.marked_at) { %>
+                        <span class="uuas-pill uuas-pill--absent">Absent</span>
+                      <% } else { %>
+                        <span class="uuas-pill uuas-pill--leave">No Record</span>
+                      <% } %>
+                    </td>
+                  </tr>
+                  <% } %>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+          <div class="uuas-pagination-row">
+            <span>Showing <%= history.length %> attendance entries</span>
+            <div class="uuas-pagination-controls">
+              <button class="uuas-page-btn">‹</button>
+              <button class="uuas-page-btn uuas-page-active">1</button>
+              <button class="uuas-page-btn">›</button>
+            </div>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+<%- include('../partials/footer') %>

@@ -1,0 +1,244 @@
+<%- include('../partials/head', { title: title }) %>
+
+<div class="uuas-app">
+  <%- include('../partials/sidebar-student') %>
+
+  <div class="uuas-main">
+    <%- include('../partials/navbar', { topbarTitle: 'Student Dashboard' }) %>
+
+    <div class="uuas-content">
+      <%- include('../partials/flash') %>
+
+      <!-- Hero Action — Mark Attendance -->
+      <% if (activeSessions.length > 0) { %>
+        <div style="margin-bottom:1.5rem">
+          <% activeSessions.forEach(sess => { %>
+            <a href="/student/mark-attendance?token=<%= sess.session_token %>"
+               class="uuas-hero-action uuas-hero-action--mark"
+               role="button"
+               aria-label="Mark attendance for <%= sess.course_code %>">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              <div>
+                <div style="font-size:1.125rem;font-weight:700">Mark Attendance Now</div>
+                <div style="font-size:0.875rem;font-weight:400;opacity:0.9"><%= sess.course_code %> — <%= sess.course_title %> is LIVE</div>
+              </div>
+              <div class="uuas-live-dot" style="margin-left:auto" aria-label="Live session"></div>
+            </a>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <a href="/student/mark-attendance"
+           class="uuas-hero-action uuas-hero-action--mark"
+           role="button"
+           style="margin-bottom:1.5rem"
+           aria-label="Mark attendance">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          <div>
+            <div style="font-size:1.125rem;font-weight:700">Mark Attendance</div>
+            <div style="font-size:0.875rem;font-weight:400;opacity:0.9">Scan classroom QR code or enter session token</div>
+          </div>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:auto" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+      <% } %>
+
+      <!-- TeamHub Top Overview Grid: 3 Summary Cards + Attendance Trend Chart -->
+      <%
+        const avgPercentage = courses.length > 0 ? Math.round(courses.reduce((s,c) => s + (c.percentage || 0), 0) / courses.length) : 0;
+        const atRiskCount = courses.filter(c => c.at_risk).length;
+      %>
+      <div class="uuas-overview-grid">
+        <!-- Card 1: Mint (Enrolled Courses) -->
+        <div class="uuas-summary-card--mint">
+          <div class="uuas-summary-title">Enrolled Courses</div>
+          <div class="uuas-summary-val-row">
+            <div class="uuas-summary-value"><%= courses.length %></div>
+            <div class="uuas-summary-delta">Registered</div>
+          </div>
+          <div class="uuas-summary-footer">
+            <span>This semester</span>
+          </div>
+        </div>
+
+        <!-- Card 2: Vibrant Green (Average Attendance %) -->
+        <div class="uuas-summary-card--green">
+          <div class="uuas-summary-title">Average Attendance</div>
+          <div class="uuas-summary-val-row">
+            <div class="uuas-summary-value"><%= avgPercentage %>%</div>
+            <div class="uuas-summary-delta"><%= avgPercentage >= 75 ? 'Good' : 'At-Risk' %></div>
+          </div>
+          <div class="uuas-summary-footer">
+            <span>Across all courses</span>
+          </div>
+        </div>
+
+        <!-- Card 3: Dark Forest Green (At-Risk Courses) -->
+        <div class="uuas-summary-card--dark">
+          <div class="uuas-summary-title">At-Risk Courses</div>
+          <div class="uuas-summary-val-row">
+            <div class="uuas-summary-value"><%= atRiskCount %></div>
+            <div class="uuas-summary-delta"><%= atRiskCount > 0 ? 'Action Needed' : 'None' %></div>
+          </div>
+          <div class="uuas-summary-footer">
+            <span>Below 75% threshold</span>
+          </div>
+        </div>
+
+        <!-- Card 4: Attendance Overview Trend Bar Chart -->
+        <div class="uuas-chart-card">
+          <div class="uuas-chart-header">
+            <div class="uuas-chart-title">Attendance Overview</div>
+            <select class="uuas-chart-select" aria-label="Time period">
+              <option>This Semester</option>
+              <option>Last 6 Months</option>
+            </select>
+          </div>
+          <div class="uuas-chart-body">
+            <div class="uuas-chart-y-axis">
+              <span>100%</span>
+              <span>75%</span>
+              <span>50%</span>
+              <span>25%</span>
+              <span>0%</span>
+            </div>
+            <div class="uuas-chart-bars">
+              <% if (courses.length > 0) { %>
+                <% courses.slice(0, 6).forEach(c => { 
+                    const pct = c.percentage !== null ? c.percentage : 50;
+                %>
+                  <div class="uuas-chart-col">
+                    <div class="uuas-chart-bar-stack">
+                      <div class="uuas-bar-seg--present" style="height:<%= Math.round(pct * 0.8) %>%"></div>
+                      <div class="uuas-bar-seg--leave" style="height:<%= Math.round(pct * 0.2) %>%"></div>
+                      <div class="uuas-bar-seg--absent" style="height:<%= Math.max(5, 100 - pct) %>%"></div>
+                    </div>
+                    <span class="uuas-chart-col-label"><%= c.code.length > 6 ? c.code.substring(0,6) : c.code %></span>
+                  </div>
+                <% }) %>
+              <% } else { %>
+                <% ['Feb','Mar','Apr','May','Jun','Jul'].forEach(m => { %>
+                  <div class="uuas-chart-col">
+                    <div class="uuas-chart-bar-stack">
+                      <div class="uuas-bar-seg--present" style="height:70%"></div>
+                      <div class="uuas-bar-seg--leave" style="height:15%"></div>
+                      <div class="uuas-bar-seg--absent" style="height:15%"></div>
+                    </div>
+                    <span class="uuas-chart-col-label"><%= m %></span>
+                  </div>
+                <% }) %>
+              <% } %>
+            </div>
+          </div>
+          <div class="uuas-chart-legend">
+            <div class="uuas-legend-item"><span class="uuas-legend-dot" style="background:#34d399"></span> Present</div>
+            <div class="uuas-legend-item"><span class="uuas-legend-dot" style="background:var(--uuas-green)"></span> Verified</div>
+            <div class="uuas-legend-item"><span class="uuas-legend-dot" style="background:var(--uuas-green-forest)"></span> Absent</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Courses Attendance Summary Table (TeamHub Style) -->
+      <div class="uuas-card">
+        <div class="uuas-table-card-header">
+          <div>
+            <h2 class="uuas-h3">Enrolled Course Attendance</h2>
+            <p class="uuas-text-xs uuas-muted" style="margin-top:2px">Session records and compliance per registered module</p>
+          </div>
+          <div class="uuas-table-controls">
+            <div class="uuas-table-search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" placeholder="Search course..." aria-label="Search courses">
+            </div>
+            <a href="/student/courses" class="uuas-btn uuas-btn--outline uuas-btn--sm">View All</a>
+          </div>
+        </div>
+
+        <% if (!courses.length) { %>
+          <div class="uuas-empty">
+            <div style="display:flex;align-items:center;justify-content:center;margin-bottom:0.75rem;color:var(--uuas-gray-400)">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            </div>
+            <p class="uuas-bold">You are not enrolled in any courses yet.</p>
+            <p class="uuas-text-sm uuas-muted">Contact your administrator or lecturer to be registered.</p>
+          </div>
+        <% } else { %>
+          <div class="uuas-table-wrapper">
+            <table class="uuas-table" aria-label="Course attendance summary">
+              <thead>
+                <tr>
+                  <th scope="col">Course ↕</th>
+                  <th scope="col">Lecturer ↕</th>
+                  <th scope="col">Attended ↕</th>
+                  <th scope="col">Attendance Progress ↕</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" class="uuas-text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% courses.forEach(c => { %>
+                  <tr>
+                    <td>
+                      <div class="uuas-table-user-cell">
+                        <div class="uuas-avatar-circle"><%= c.code.substring(0,2) %></div>
+                        <div>
+                          <div class="uuas-table-user-name"><%= c.code %></div>
+                          <div class="uuas-table-user-sub"><%= c.title %></div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="uuas-method-cell">
+                        <span class="uuas-method-dot uuas-method-dot--qr"></span>
+                        <span class="uuas-text-sm"><%= c.lecturer_name %></span>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="uuas-text-sm"><%= c.attended %> / <%= c.total_sessions %> sessions</span>
+                    </td>
+                    <td style="min-width:140px">
+                      <% if (c.total_sessions > 0) { %>
+                        <div class="uuas-flex uuas-items-center uuas-gap-2">
+                          <div class="uuas-progress" style="flex:1">
+                            <div class="uuas-progress-bar uuas-progress-bar--<%= c.at_risk ? 'danger' : 'success' %>"
+                                 style="width:<%= c.percentage %>%"
+                                 role="progressbar"
+                                 aria-valuenow="<%= c.percentage %>"
+                                 aria-valuemin="0" aria-valuemax="100"></div>
+                          </div>
+                          <span class="uuas-text-sm uuas-bold" style="color:var(--uuas-<%= c.at_risk ? 'red' : 'green' %>);min-width:36px"><%= c.percentage %>%</span>
+                        </div>
+                      <% } else { %>
+                        <span class="uuas-text-xs uuas-muted">No sessions held yet</span>
+                      <% } %>
+                    </td>
+                    <td>
+                      <% if (c.total_sessions === 0) { %>
+                        <span class="uuas-pill uuas-pill--leave">No Data</span>
+                      <% } else if (c.at_risk) { %>
+                        <span class="uuas-pill uuas-pill--danger">At Risk</span>
+                      <% } else { %>
+                        <span class="uuas-pill uuas-pill--ontime">Good</span>
+                      <% } %>
+                    </td>
+                    <td class="uuas-text-right">
+                      <a href="/student/history" class="uuas-btn uuas-btn--ghost uuas-btn--sm">History</a>
+                    </td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+          <div class="uuas-pagination-row">
+            <span>Showing <%= courses.length %> enrolled modules</span>
+            <div class="uuas-pagination-controls">
+              <button class="uuas-page-btn">‹</button>
+              <button class="uuas-page-btn uuas-page-active">1</button>
+              <button class="uuas-page-btn">›</button>
+            </div>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/footer') %>

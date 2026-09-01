@@ -1,0 +1,49 @@
+version: '3.9'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: attenduyo_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: attenduyo_db
+      MYSQL_USER: attenduyo_user
+      MYSQL_PASSWORD: AttendUyo@2024
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./db/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  app:
+    build: .
+    container_name: attenduyo_app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: attenduyo_user
+      DB_PASSWORD: AttendUyo@2024
+      DB_NAME: attenduyo_db
+      SESSION_SECRET: uuas-docker-secret-change-in-production
+      GPS_DEFAULT_RADIUS: 100
+      SESSION_EXPIRY_MINUTES: 60
+      AT_RISK_THRESHOLD: 75
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./public:/app/public
+
+volumes:
+  db_data:

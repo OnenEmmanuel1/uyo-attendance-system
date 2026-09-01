@@ -1,0 +1,352 @@
+<%- include('../partials/head', { title: title }) %>
+
+  <div class="uuas-app">
+    <%- include('../partials/sidebar-student') %>
+      <div class="uuas-main">
+        <%- include('../partials/navbar', { topbarTitle: 'Mark Attendance' }) %>
+          <div class="uuas-content">
+            <%- include('../partials/flash') %>
+
+              <div class="uuas-page-header uuas-mb-6">
+                <div>
+                  <!-- <h1 class="uuas-h2">Mark Attendance</h1> -->
+                  <p class="uuas-text-sm uuas-muted" style="margin-top:0.25rem">Scan the classroom QR code or enter the
+                    session token provided by your lecturer.</p>
+                </div>
+              </div>
+
+              <!-- Step indicator UI -->
+              <div id="uuas-mark-ui">
+
+                <!-- ══ Step 1: Token Entry / QR Scanner ══════════════════ -->
+                <div id="step-token" class="uuas-card" style="max-width:520px;margin:0 auto">
+                  <div class="uuas-card-header">
+                    <h2 class="uuas-h3">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        aria-hidden="true" style="display:inline;vertical-align:middle;margin-right:6px">
+                        <rect x="3" y="3" width="7" height="7" />
+                        <rect x="14" y="3" width="7" height="7" />
+                        <rect x="14" y="14" width="7" height="7" />
+                        <rect x="3" y="14" width="7" height="7" />
+                      </svg>
+                      Scan QR or Enter Token
+                    </h2>
+                  </div>
+                  <div class="uuas-card-body">
+                    <% if (error) { %>
+                      <div class="uuas-alert uuas-alert--error" role="alert">
+                        <%= error %>
+                      </div>
+                      <% } %>
+
+                        <!-- QR Scanner Section (Prominent) -->
+                        <div
+                          style="display:flex;flex-direction:column;align-items:center;gap:1rem;margin-bottom:1.5rem">
+                          <div class="uuas-scanner-box" id="uuas-qr-reader" aria-label="QR code scanner viewfinder">
+                          </div>
+                          <div id="uuas-qr-status" class="uuas-text-xs uuas-muted" role="status" aria-live="polite">
+                            Camera inactive — click below to scan QR</div>
+                          <div style="display:flex;gap:0.75rem;width:100%">
+                            <button class="uuas-btn uuas-btn--primary" style="flex:1" id="btn-start-scan">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" aria-hidden="true">
+                                <rect x="3" y="3" width="7" height="7" />
+                                <rect x="14" y="3" width="7" height="7" />
+                              </svg>
+                              Start Camera Scan
+                            </button>
+                            <button class="uuas-btn uuas-btn--ghost" id="btn-stop-scan" disabled>Stop</button>
+                          </div>
+                        </div>
+
+                        <div class="uuas-flex-center" style="gap:1rem;margin-bottom:1.5rem">
+                          <hr style="flex:1;border:none;border-top:1px solid var(--uuas-border)">
+                          <span class="uuas-text-xs uuas-muted"
+                            style="text-transform:uppercase;letter-spacing:0.05em;font-weight:600">or enter token</span>
+                          <hr style="flex:1;border:none;border-top:1px solid var(--uuas-border)">
+                        </div>
+
+                        <!-- Manual token input -->
+                        <div class="uuas-form-group">
+                          <label class="uuas-label" for="manual-token">Session Token</label>
+                          <input type="text" id="manual-token" class="uuas-input"
+                            placeholder="Paste 32-character session token…" value="<%= token || '' %>"
+                            autocomplete="off" aria-describedby="token-help">
+                          <div class="uuas-input-help" id="token-help">Tokens are generated dynamically per classroom
+                            session</div>
+                        </div>
+                        <button class="uuas-btn uuas-btn--outline" style="width:100%" id="btn-use-token">
+                          Validate Token →
+                        </button>
+                  </div>
+                </div>
+
+                <!-- ══ Step 2: Confirm / GPS / Biometric ══════════════════ -->
+                <div id="step-confirm" class="uuas-card" style="max-width:520px;margin:0 auto;display:none">
+                  <div class="uuas-card-header">
+                    <h2 class="uuas-h3">Confirm Attendance Verification</h2>
+                  </div>
+                  <div class="uuas-card-body">
+                    <div id="uuas-session-info"
+                      style="background:#ecfdf5;border:1px solid var(--uuas-green-mint-border);border-radius:var(--uuas-r-md);padding:1rem;margin-bottom:1.25rem">
+                      <div
+                        style="font-size:0.6875rem;color:#065f46;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;margin-bottom:0.35rem">
+                        Active Session</div>
+                      <div id="info-course" class="uuas-bold" style="font-size:1.125rem;color:#064e3b"></div>
+                      <div id="info-session" class="uuas-text-sm" style="color:#047857;margin-top:2px"></div>
+                      <div id="info-expires" class="uuas-text-xs" style="color:#059669;margin-top:4px"></div>
+                    </div>
+
+                    <!-- GPS capture block -->
+                    <div id="gps-block" style="display:none;margin-bottom:1.25rem">
+                      <div class="uuas-alert uuas-alert--info">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                          stroke-width="2" aria-hidden="true">
+                          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                          <circle cx="12" cy="10" r="3" />
+                        </svg>
+                        <div>This session requires GPS geofence verification.</div>
+                      </div>
+                      <button class="uuas-btn uuas-btn--outline" style="width:100%" id="btn-capture-gps">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                          stroke-width="2" aria-hidden="true">
+                          <circle cx="12" cy="12" r="10" />
+                          <circle cx="12" cy="12" r="3" />
+                        </svg>
+                        Capture My Location
+                      </button>
+                      <div id="gps-status" class="uuas-text-xs uuas-muted" style="margin-top:0.5rem;text-align:center"
+                        role="status" aria-live="polite"></div>
+                    </div>
+
+                    <!-- Biometric block -->
+                    <div id="biometric-block" style="display:none;margin-bottom:1.25rem">
+                      <div class="uuas-alert uuas-alert--warning">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                          stroke-width="2" aria-hidden="true">
+                          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                        </svg>
+                        <div>Biometric verification required. Use device biometric sensor.</div>
+                      </div>
+                      <button class="uuas-btn uuas-btn--outline" style="width:100%" id="btn-biometric">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                          stroke-width="2" aria-hidden="true">
+                          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                        </svg>
+                        Verify Biometric Identity
+                      </button>
+                      <div id="biometric-status" class="uuas-text-xs uuas-muted"
+                        style="margin-top:0.5rem;text-align:center" role="status" aria-live="polite"></div>
+                    </div>
+
+                    <div id="mark-error" class="uuas-alert uuas-alert--error" style="display:none" role="alert"></div>
+                    <div id="mark-success" class="uuas-alert uuas-alert--success" style="display:none" role="status">
+                    </div>
+
+                    <button class="uuas-btn uuas-btn--primary uuas-btn--lg" style="width:100%" id="btn-mark" disabled>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                        stroke-width="2.5" aria-hidden="true">
+                        <polyline points="9 11 12 14 22 4" />
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                      </svg>
+                      Submit Attendance Record
+                    </button>
+                    <button class="uuas-btn uuas-btn--ghost" style="width:100%;margin-top:0.5rem" id="btn-back">←
+                      Back</button>
+                  </div>
+                </div>
+              </div>
+          </div>
+      </div>
+  </div>
+
+  <!-- html5-qrcode CDN -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="/js/qr-scanner.js"></script>
+  <script src="/js/gps.js"></script>
+  <script src="/js/webauthn.js"></script>
+
+  <script>
+    (function () {
+      let currentToken = '<%= token || "" %>';
+      let sessionData = null;
+      let capturedGps = null;
+      let biometricOk = false;
+
+      const stepToken = document.getElementById('step-token');
+      const stepConfirm = document.getElementById('step-confirm');
+      const btnMark = document.getElementById('btn-mark');
+
+      function showError(msg, el) {
+        el = el || document.getElementById('mark-error');
+        el.textContent = msg;
+        el.style.display = 'flex';
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+
+      function hideError(el) { (el || document.getElementById('mark-error')).style.display = 'none'; }
+
+      // ── Token resolution ──────────────────────────────────────────
+      async function resolveAndShowConfirm(token) {
+        if (!token || !token.trim()) {
+          showError('Please enter a valid token.', document.querySelector('.uuas-alert--error'));
+          return;
+        }
+        currentToken = token.trim();
+        try {
+          const res = await fetch(`/api/sessions/0/status`, { method: 'GET' }); // placeholder
+          const infoRes = await fetch(`/student/mark-attendance?token=${encodeURIComponent(currentToken)}`, {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+          });
+          showConfirmStep(currentToken, null);
+        } catch (e) {
+          showConfirmStep(currentToken, null);
+        }
+      }
+
+      function showConfirmStep(token, data) {
+        stepToken.style.display = 'none';
+        stepConfirm.style.display = '';
+        document.getElementById('info-course').textContent = 'Session: ' + token.substring(0, 16) + '…';
+        document.getElementById('info-session').textContent = 'Connecting to session…';
+        document.getElementById('info-expires').textContent = '';
+        QrScanner.stop();
+        checkRequirements();
+      }
+
+      function checkRequirements() {
+        document.getElementById('gps-block').style.display = '';
+        document.getElementById('biometric-block').style.display = '';
+        updateMarkButton();
+      }
+
+      function updateMarkButton() {
+        btnMark.disabled = false;
+      }
+
+      // ── GPS capture ───────────────────────────────────────────────
+      document.getElementById('btn-capture-gps').addEventListener('click', async () => {
+        const status = document.getElementById('gps-status');
+        status.textContent = 'Requesting location…';
+        document.getElementById('btn-capture-gps').disabled = true;
+        try {
+          capturedGps = await captureGPS();
+          status.textContent = `Location captured (±${Math.round(capturedGps.accuracy)}m accuracy)`;
+          status.style.color = 'var(--uuas-green)';
+        } catch (err) {
+          status.textContent = err.message;
+          status.style.color = 'var(--uuas-red)';
+          document.getElementById('btn-capture-gps').disabled = false;
+        }
+      });
+
+      // ── Biometric auth ────────────────────────────────────────────
+      document.getElementById('btn-biometric').addEventListener('click', async () => {
+        const status = document.getElementById('biometric-status');
+        status.textContent = 'Waiting for biometric…';
+        document.getElementById('btn-biometric').disabled = true;
+        try {
+          await authenticateBiometric();
+          biometricOk = true;
+          status.textContent = 'Identity verified';
+          status.style.color = 'var(--uuas-green)';
+        } catch (err) {
+          status.textContent = err.message;
+          status.style.color = 'var(--uuas-red)';
+          document.getElementById('btn-biometric').disabled = false;
+        }
+      });
+
+      // ── Submit attendance ─────────────────────────────────────────
+      btnMark.addEventListener('click', async () => {
+        hideError();
+        btnMark.disabled = true;
+        btnMark.textContent = 'Submitting…';
+
+        const body = {
+          token: currentToken,
+          biometric_verified: biometricOk,
+        };
+        if (capturedGps) {
+          body.gps_lat = capturedGps.lat;
+          body.gps_lng = capturedGps.lng;
+        }
+
+        try {
+          const res = await fetch('/api/attendance/mark', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            document.getElementById('mark-success').textContent = `Attendance marked successfully! Method: ${data.record.method}`;
+            document.getElementById('mark-success').style.display = 'flex';
+            btnMark.style.display = 'none';
+            document.getElementById('btn-back').style.display = 'none';
+            setTimeout(() => { window.location.href = '/student/history'; }, 2500);
+          } else {
+            showError(data.error || 'Failed to mark attendance. Please try again.');
+            btnMark.disabled = false;
+            btnMark.textContent = 'Submit Attendance Record';
+          }
+        } catch (err) {
+          showError('Network error. Please check your connection.');
+          btnMark.disabled = false;
+          btnMark.textContent = 'Submit Attendance Record';
+        }
+      });
+
+      // ── QR Scanner events ─────────────────────────────────────────
+      document.getElementById('btn-start-scan').addEventListener('click', () => {
+        const status = document.getElementById('uuas-qr-status');
+        status.textContent = 'Requesting camera access…';
+        status.style.color = 'var(--uuas-gray-500)';
+        document.getElementById('btn-start-scan').disabled = true;
+        document.getElementById('btn-stop-scan').disabled = false;
+
+        QrScanner.start(
+          'uuas-qr-reader',
+          (token) => {
+            status.textContent = 'QR detected successfully!';
+            status.style.color = 'var(--uuas-green)';
+            showConfirmStep(token, null);
+          },
+          (err) => {
+            status.textContent = err;
+            status.style.color = 'var(--uuas-red)';
+            document.getElementById('btn-start-scan').disabled = false;
+            document.getElementById('btn-stop-scan').disabled = true;
+          }
+        );
+      });
+
+      document.getElementById('btn-stop-scan').addEventListener('click', () => {
+        QrScanner.stop();
+        document.getElementById('btn-start-scan').disabled = false;
+        document.getElementById('btn-stop-scan').disabled = true;
+        const status = document.getElementById('uuas-qr-status');
+        status.textContent = 'Camera stopped';
+        status.style.color = 'var(--uuas-gray-500)';
+      });
+
+      document.getElementById('btn-use-token').addEventListener('click', () => {
+        const t = document.getElementById('manual-token').value.trim();
+        resolveAndShowConfirm(t);
+      });
+
+      document.getElementById('btn-back').addEventListener('click', () => {
+        stepToken.style.display = '';
+        stepConfirm.style.display = 'none';
+        capturedGps = null;
+        biometricOk = false;
+      });
+
+      // Auto-resolve if token in URL
+      if (currentToken) {
+        showConfirmStep(currentToken, null);
+      }
+    })();
+  </script>
+
+  <%- include('../partials/footer') %>

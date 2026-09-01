@@ -1,0 +1,340 @@
+<%- include('../partials/head', { title: ' ' }) %>
+
+  <div class="uuas-app">
+    <% if (profileUser.role==='admin' ) { %>
+      <%- include('../partials/sidebar-admin') %>
+        <% } else if (profileUser.role==='lecturer' ) { %>
+          <%- include('../partials/sidebar-lecturer') %>
+            <% } else { %>
+              <%- include('../partials/sidebar-student') %>
+                <% } %>
+
+                  <div class="uuas-main">
+                    <%- include('../partials/navbar', { topbarTitle: 'My Profile' }) %>
+
+                      <div class="uuas-content">
+                        <%- include('../partials/flash') %>
+
+                          <!-- Profile Hero Banner -->
+                          <div class="uuas-profile-hero">
+                            <div class="uuas-profile-hero-left">
+                              <div class="uuas-profile-avatar-large" id="hero-avatar-display">
+                                <% if (profileUser.avatar_url) { %>
+                                  <img src="<%= profileUser.avatar_url %>" alt="<%= profileUser.name %>"
+                                    id="hero-avatar-img">
+                                  <% } else { %>
+                                    <span id="hero-avatar-initial">
+                                      <%= profileUser.name.charAt(0).toUpperCase() %>
+                                    </span>
+                                    <% } %>
+                              </div>
+                              <div class="uuas-profile-meta">
+                                <h2>
+                                  <%= profileUser.name %>
+                                </h2>
+                                <div
+                                  style="font-size:0.875rem;color:var(--uuas-gray-600);display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
+                                  <span>
+                                    <%= profileUser.email %>
+                                  </span>
+                                  <span>&bull;</span>
+                                  <span>
+                                    <%= profileUser.matric_or_staff_id %>
+                                  </span>
+                                </div>
+                                <div class="uuas-profile-badges">
+                                  <span class="uuas-pill uuas-pill--ontime" style="text-transform:capitalize">
+                                    <%= profileUser.role %>
+                                  </span>
+                                  <% if (profileUser.department) { %>
+                                    <span class="uuas-pill uuas-pill--leave">
+                                      <%= profileUser.department %>
+                                    </span>
+                                    <% } %>
+                                      <% if (hasBiometrics) { %>
+                                        <span class="uuas-pill uuas-pill--ontime"
+                                          title="Hardware WebAuthn Biometric Registered">
+                                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2" aria-hidden="true"
+                                            style="margin-right:3px">
+                                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                                          </svg>
+                                          Biometric Active
+                                        </span>
+                                        <% } %>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div style="font-size:0.8125rem;color:var(--uuas-gray-500);text-align:right">
+                              <div>Member since <%= new Date(profileUser.created_at).toLocaleDateString(undefined, {
+                                  year: 'numeric' , month: 'short' , day: 'numeric' }) %>
+                              </div>
+                              <div style="margin-top:0.25rem;font-weight:500;color:var(--uuas-green-forest)">University
+                                of Uyo</div>
+                            </div>
+                          </div>
+
+                          <!-- Edit Form Grid -->
+                          <form action="/profile" method="POST" enctype="multipart/form-data" id="uuas-profile-form">
+                            <div class="uuas-grid-2" style="gap:1.75rem;align-items:start">
+
+                              <!-- Left Column: Personal Information & Profile Photo -->
+                              <div style="display:flex;flex-direction:column;gap:1.75rem">
+
+                                <!-- Profile Picture Upload Card -->
+                                <div class="uuas-card">
+                                  <div class="uuas-card-header">
+                                    <div>
+                                      <h3 class="uuas-h3">Profile Picture</h3>
+                                      <p class="uuas-text-xs uuas-muted" style="margin-top:2px">Upload an official
+                                        portrait for attendance verification</p>
+                                    </div>
+                                  </div>
+                                  <div class="uuas-card-body">
+                                    <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:1.25rem">
+                                      <div class="uuas-profile-avatar-large"
+                                        style="width:76px;height:76px;font-size:1.75rem" id="preview-avatar-box">
+                                        <% if (profileUser.avatar_url) { %>
+                                          <img src="<%= profileUser.avatar_url %>" alt="<%= profileUser.name %>"
+                                            id="avatar-preview-img">
+                                          <% } else { %>
+                                            <span id="avatar-preview-initial">
+                                              <%= profileUser.name.charAt(0).toUpperCase() %>
+                                            </span>
+                                            <% } %>
+                                      </div>
+                                      <div style="flex:1">
+                                        <div style="font-size:0.875rem;font-weight:600;color:var(--uuas-gray-900)">
+                                          Change Photo</div>
+                                        <div style="font-size:0.75rem;color:var(--uuas-gray-500);margin-top:0.25rem">
+                                          Supports JPG, PNG, WEBP or GIF (Max 5MB)</div>
+                                        <div style="display:flex;gap:0.75rem;margin-top:0.75rem;align-items:center">
+                                          <button type="button" class="uuas-btn uuas-btn--outline uuas-btn--sm"
+                                            id="btn-select-avatar"
+                                            style="display:inline-flex;align-items:center;gap:0.4rem">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                              stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                                              <circle cx="8.5" cy="8.5" r="1.5" />
+                                              <polyline points="21 15 16 10 5 21" />
+                                            </svg>
+                                            <span>Choose Photo</span>
+                                          </button>
+                                          <% if (profileUser.avatar_url) { %>
+                                            <button type="button" class="uuas-btn uuas-btn--ghost uuas-btn--sm"
+                                              id="btn-remove-avatar" style="color:var(--uuas-red)">
+                                              Remove
+                                            </button>
+                                            <% } %>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <input type="file" id="avatar-input" name="avatar"
+                                      accept="image/jpeg,image/png,image/webp,image/gif" style="display:none">
+                                    <input type="hidden" id="remove-avatar-flag" name="remove_avatar" value="0">
+                                    <div id="file-chosen-name"
+                                      style="font-size:0.75rem;color:var(--uuas-green);margin-top:0.5rem;display:none;font-weight:500">
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <!-- Personal Information Card -->
+                                <div class="uuas-card">
+                                  <div class="uuas-card-header">
+                                    <div>
+                                      <h3 class="uuas-h3">Personal Information</h3>
+                                      <p class="uuas-text-xs uuas-muted" style="margin-top:2px">Manage your personal
+                                        profile details</p>
+                                    </div>
+                                  </div>
+                                  <div class="uuas-card-body">
+                                    <div class="uuas-form-group">
+                                      <label class="uuas-label" for="profile-name">Full Name</label>
+                                      <input type="text" id="profile-name" name="name" class="uuas-input"
+                                        value="<%= profileUser.name %>" required>
+                                    </div>
+
+                                    <div class="uuas-form-group">
+                                      <label class="uuas-label" for="profile-email">Institutional Email</label>
+                                      <input type="email" id="profile-email" class="uuas-input"
+                                        value="<%= profileUser.email %>" disabled
+                                        style="background:var(--uuas-gray-100);cursor:not-allowed"
+                                        title="Institutional emails are managed by Registry">
+                                      <span class="uuas-text-xs uuas-muted"
+                                        style="margin-top:0.25rem;display:block">Managed by university
+                                        administration</span>
+                                    </div>
+
+                                    <div class="uuas-form-group">
+                                      <label class="uuas-label" for="profile-id">
+                                        <%= profileUser.role==='student' ? 'Matriculation Number' : 'Staff ID' %>
+                                      </label>
+                                      <input type="text" id="profile-id" class="uuas-input"
+                                        value="<%= profileUser.matric_or_staff_id %>" disabled
+                                        style="background:var(--uuas-gray-100);cursor:not-allowed">
+                                    </div>
+
+                                    <div class="uuas-form-group">
+                                      <label class="uuas-label" for="profile-dept">Academic Department</label>
+                                      <input type="text" id="profile-dept" name="department" class="uuas-input"
+                                        value="<%= profileUser.department || '' %>" placeholder="e.g. Computer Science">
+                                    </div>
+
+                                    <div class="uuas-form-group">
+                                      <label class="uuas-label" for="profile-phone">Contact Phone Number</label>
+                                      <input type="tel" id="profile-phone" name="phone" class="uuas-input"
+                                        value="<%= profileUser.phone || '' %>" placeholder="e.g. +234 801 234 5678">
+                                    </div>
+                                  </div>
+                                </div>
+
+                              </div>
+
+                              <!-- Right Column: Password & Security Settings -->
+                              <div style="display:flex;flex-direction:column;gap:1.75rem">
+
+                                <!-- Security & Password Change Card -->
+                                <div class="uuas-card">
+                                  <div class="uuas-card-header">
+                                    <div>
+                                      <h3 class="uuas-h3">Change Password</h3>
+                                      <p class="uuas-text-xs uuas-muted" style="margin-top:2px">Leave blank if you do
+                                        not wish to update your password</p>
+                                    </div>
+                                  </div>
+                                  <div class="uuas-card-body">
+                                    <div class="uuas-form-group">
+                                      <label class="uuas-label" for="current_password">Current Password</label>
+                                      <input type="password" id="current_password" name="current_password"
+                                        class="uuas-input" placeholder="Enter current password"
+                                        autocomplete="current-password">
+                                    </div>
+
+                                    <div class="uuas-form-group">
+                                      <label class="uuas-label" for="new_password">New Password</label>
+                                      <input type="password" id="new_password" name="new_password" class="uuas-input"
+                                        placeholder="Minimum 6 characters" autocomplete="new-password">
+                                    </div>
+
+                                    <div class="uuas-form-group">
+                                      <label class="uuas-label" for="confirm_password">Confirm New Password</label>
+                                      <input type="password" id="confirm_password" name="confirm_password"
+                                        class="uuas-input" placeholder="Re-type new password"
+                                        autocomplete="new-password">
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <!-- Account Role & Access Overview Card -->
+                                <div class="uuas-card">
+                                  <div class="uuas-card-header">
+                                    <h3 class="uuas-h3">Account & Security</h3>
+                                  </div>
+                                  <div class="uuas-card-body">
+                                    <dl
+                                      style="display:grid;grid-template-columns:max-content 1fr;gap:0.75rem 1rem;font-size:0.875rem">
+                                      <dt class="uuas-muted">Assigned Role</dt>
+                                      <dd class="uuas-bold" style="text-transform:capitalize">
+                                        <%= profileUser.role %>
+                                      </dd>
+                                      <dt class="uuas-muted">Account Status</dt>
+                                      <dd><span class="uuas-pill uuas-pill--ontime">Active & Verified</span></dd>
+                                      <dt class="uuas-muted">WebAuthn</dt>
+                                      <dd>
+                                        <%= hasBiometrics ? 'Hardware key registered' : 'No biometric device configured'
+                                          %>
+                                      </dd>
+                                      <dt class="uuas-muted">Portal Scope</dt>
+                                      <dd>University of Uyo Attendance (UUAS)</dd>
+                                    </dl>
+                                  </div>
+                                </div>
+
+                                <!-- Submit Action Card -->
+                                <div class="uuas-card" style="background:#ecfdf5;border-color:#a7f3d0">
+                                  <div class="uuas-card-body"
+                                    style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem">
+                                    <div>
+                                      <div style="font-size:0.9375rem;font-weight:700;color:#064e3b">Save Profile
+                                        Changes</div>
+                                      <div style="font-size:0.75rem;color:#047857">Updates your name, phone, department,
+                                        photo, and password</div>
+                                    </div>
+                                    <button type="submit" class="uuas-btn uuas-btn--primary uuas-btn--lg"
+                                      id="btn-save-profile" style="display:inline-flex;align-items:center;gap:0.5rem">
+                                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" aria-hidden="true">
+                                        <polyline points="20 6 9 17 4 12" />
+                                      </svg>
+                                      <span>Save Changes</span>
+                                    </button>
+                                  </div>
+                                </div>
+
+                              </div>
+                            </div>
+                          </form>
+
+                      </div>
+                  </div>
+  </div>
+
+  <script>
+    // ── Live Avatar Selection & Instant Preview ───────────────────
+    const fileInput = document.getElementById('avatar-input');
+    const btnSelect = document.getElementById('btn-select-avatar');
+    const btnRemove = document.getElementById('btn-remove-avatar');
+    const removeFlag = document.getElementById('remove-avatar-flag');
+    const chosenName = document.getElementById('file-chosen-name');
+    const previewBox = document.getElementById('preview-avatar-box');
+    const heroBox = document.getElementById('hero-avatar-display');
+
+    if (btnSelect && fileInput) {
+      btnSelect.addEventListener('click', () => fileInput.click());
+
+      fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          if (file.size > 5 * 1024 * 1024) {
+            alert('Selected image exceeds the maximum allowed size of 5MB.');
+            fileInput.value = '';
+            return;
+          }
+
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const url = event.target.result;
+            previewBox.innerHTML = `<img src="${url}" alt="Preview" class="uuas-avatar-img">`;
+            heroBox.innerHTML = `<img src="${url}" alt="Preview" class="uuas-avatar-img">`;
+            if (chosenName) {
+              chosenName.textContent = `Selected: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+              chosenName.style.display = 'block';
+            }
+            if (removeFlag) removeFlag.value = '0';
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    }
+
+    if (btnRemove) {
+      btnRemove.addEventListener('click', () => {
+        if (confirm('Remove your profile photo and revert to initial avatar?')) {
+          fileInput.value = '';
+          if (removeFlag) removeFlag.value = '1';
+          const initial = '<%= profileUser.name.charAt(0).toUpperCase() %>';
+          previewBox.innerHTML = `<span>${initial}</span>`;
+          heroBox.innerHTML = `<span>${initial}</span>`;
+          if (chosenName) {
+            chosenName.textContent = 'Photo will be removed on save.';
+            chosenName.style.display = 'block';
+            chosenName.style.color = 'var(--uuas-red)';
+          }
+        }
+      });
+    }
+  </script>
+
+  <%- include('../partials/footer') %>
