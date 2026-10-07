@@ -26,14 +26,26 @@ router.get('/users', async (req, res, next) => {
 });
 
 // GET /admin/users/new
-router.get('/users/new', (req, res) => {
-  res.render('admin/create-user', { title: 'Create User — AttendUyo', error: null });
+router.get('/users/new', async (req, res, next) => {
+  try {
+    const [departments] = await query('SELECT name FROM departments WHERE is_active = 1 ORDER BY name');
+    res.render('admin/create-user', { title: 'Create User — AttendUyo', error: null, departments });
+  } catch (err) { next(err); }
 });
 
 // POST /admin/users/new
 router.post('/users/new', async (req, res, next) => {
   try {
     const { name, email, password, role, matric_or_staff_id, department, phone } = req.body;
+    const [validDepartment] = department
+      ? await query('SELECT name FROM departments WHERE name = ? AND is_active = 1', [department])
+      : [[]];
+    if (['student', 'lecturer'].includes(role) && !validDepartment.length) {
+      const [departments] = await query('SELECT name FROM departments WHERE is_active = 1 ORDER BY name');
+      return res.status(400).render('admin/create-user', {
+        title: 'Create User — AttendUyo', error: 'Select a valid academic department.', departments,
+      });
+    }
     const hash = await bcrypt.hash(password, 10);
     await query(
       'INSERT INTO users (name, email, password_hash, role, matric_or_staff_id, department, phone) VALUES (?,?,?,?,?,?,?)',
@@ -42,9 +54,11 @@ router.post('/users/new', async (req, res, next) => {
     res.redirect('/admin/users');
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') {
+      const [departments] = await query('SELECT name FROM departments WHERE is_active = 1 ORDER BY name');
       return res.render('admin/create-user', {
         title: 'Create User — AttendUyo',
         error: 'Email or Matric/Staff ID already exists.',
+        departments,
       });
     }
     next(err);
@@ -69,7 +83,65 @@ router.get('/courses', async (req, res, next) => {
        ORDER BY c.code`
     );
     const [lecturers] = await query("SELECT id, name FROM users WHERE role='lecturer' AND is_active=1 ORDER BY name");
-    res.render('admin/courses', { title: 'Manage Courses — AttendUyo', courses, lecturers });
+    const [departments] = await query('SELECT name FROM departments WHERE is_active = 1 ORDER BY name');
+    res.render('admin/courses', { title: 'Manage Courses — AttendUyo', courses, lecturers, departments, error: null });
+  } catch (err) { next(err); }
+});
+
+// Admin managed academic departments
+router.get('/departments', async (req, res, next) => {
+  try {
+    const [departments] = await query('SELECT id, name, is_active FROM departments ORDER BY name');
+    res.render('admin/departments', { title: 'Academic Departments — AttendUyo', departments, error: null });
+  } catch (err) { next(err); }
+});
+
+router.post('/departments', async (req, res, next) => {
+  try {
+    const name = String(req.body.name || '').trim().replace(/\s+/g, ' ');
+    if (!name) {
+      const [departments] = await query('SELECT id, name, is_active FROM departments ORDER BY name');
+      return res.status(400).render('admin/departments', {
+        title: 'Academic Departments — AttendUyo', departments, error: 'Enter a department name.',
+      });
+    }
+    await query('INSERT INTO departments (name) VALUES (?)', [name]);
+    res.redirect('/admin/departments');
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') {
+      const [departments] = await query('SELECT id, name, is_active FROM departments ORDER BY name');
+      return res.status(409).render('admin/departments', {
+        title: 'Academic Departments — AttendUyo', departments, error: 'That department already exists.',
+      });
+    }
+    next(err);
+  }
+});
+
+router.post('/departments/:id/toggle', async (req, res, next) => {
+  try {
+    await query('UPDATE departments SET is_active = NOT is_active WHERE id = ?', [req.params.id]);
+    res.redirect('/admin/departments');
+  } catch (err) { next(err); }
+});
+
+router.post('/courses/new', async (req, res, next) => {
+  try {
+    const { code, title, lecturer_id, department, level, semester, credit_units } = req.body;
+    const [validDepartment] = await query('SELECT name FROM departments WHERE name = ? AND is_active = 1', [department]);
+    const [validLecturer] = await query(
+      "SELECT id FROM users WHERE id = ? AND role = 'lecturer' AND is_active = 1", [lecturer_id]
+    );
+    if (!validDepartment.length || !validLecturer.length || !String(code || '').trim() || !String(title || '').trim()) {
+      return res.redirect('/admin/courses');
+    }
+    await query(
+      `INSERT INTO courses (code, title, lecturer_id, department, level, semester, credit_units)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [String(code || '').trim().toUpperCase(), String(title || '').trim(), lecturer_id,
+       department, level || null, semester || 'first', credit_units || 3]
+    );
+    res.redirect('/admin/courses');
   } catch (err) { next(err); }
 });
 

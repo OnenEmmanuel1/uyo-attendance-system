@@ -178,8 +178,12 @@
 
                                     <div class="uuas-form-group">
                                       <label class="uuas-label" for="profile-dept">Academic Department</label>
-                                      <input type="text" id="profile-dept" name="department" class="uuas-input"
-                                        value="<%= profileUser.department || '' %>" placeholder="e.g. Computer Science">
+                                      <select id="profile-dept" name="department" class="uuas-select">
+                                        <option value="">Select department</option>
+                                        <% departments.forEach(department => { %>
+                                          <option value="<%= department.name %>" <%= profileUser.department === department.name ? 'selected' : '' %>><%= department.name %></option>
+                                        <% }) %>
+                                      </select>
                                     </div>
 
                                     <div class="uuas-form-group">

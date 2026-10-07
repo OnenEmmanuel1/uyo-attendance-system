@@ -46,7 +46,10 @@
             <div class="uuas-grid-2" style="gap:1rem">
               <div class="uuas-form-group">
                 <label class="uuas-label" for="department">Academic Department</label>
-                <input type="text" id="department" name="department" class="uuas-input" placeholder="Computer Science">
+                <select id="department" name="department" class="uuas-select">
+                  <option value="">Select department</option>
+                  <% departments.forEach(department => { %><option value="<%= department.name %>"><%= department.name %></option><% }) %>
+                </select>
               </div>
               <div class="uuas-form-group">
                 <label class="uuas-label" for="phone">Phone Number</label>

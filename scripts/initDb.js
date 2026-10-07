@@ -11,16 +11,47 @@ const path = require('path');
 const mysql = require('mysql2/promise');
 
 async function main() {
-  const conn = await mysql.createConnection({
+  const host = process.env.DB_HOST || 'localhost';
+  const port = Number.parseInt(process.env.DB_PORT || '3306', 10);
+  const database = process.env.DB_NAME || 'attenduyo_db';
+  const user = process.env.DB_USER || 'attenduyo_user';
+  const password = process.env.DB_PASSWORD || 'AttendUyo@2024';
+  const adminUser = process.env.DB_ADMIN_USER || 'root';
+
+  // Creating a database account requires a MySQL administrator connection.
+  // Keep these credentials separate from the app's restricted DB_USER.
+  const admin = await mysql.createConnection({
     host:              process.env.DB_HOST     || 'localhost',
-    port:              parseInt(process.env.DB_PORT || '3306'),
-    user:              process.env.DB_USER     || 'attenduyo_user',
-    password:          process.env.DB_PASSWORD || 'AttendUyo@2024',
-    database:          process.env.DB_NAME     || 'attenduyo_db',
+    port,
+    user: adminUser,
+    password: process.env.DB_ADMIN_PASSWORD || '',
+  });
+
+  const dbId = admin.escapeId(database);
+  const userName = admin.escape(user);
+  const appPassword = admin.escape(password);
+  await admin.query(`CREATE DATABASE IF NOT EXISTS ${dbId}`);
+  await admin.query(
+    `CREATE USER IF NOT EXISTS ${userName}@'localhost' IDENTIFIED BY ${appPassword}`
+  );
+  await admin.query(
+    `ALTER USER ${userName}@'localhost' IDENTIFIED BY ${appPassword}`
+  );
+  await admin.query(
+    `GRANT ALL PRIVILEGES ON ${dbId}.* TO ${userName}@'localhost'`
+  );
+  await admin.end();
+
+  const conn = await mysql.createConnection({
+    host,
+    port,
+    user,
+    password,
+    database,
     multipleStatements: true,
   });
 
-  console.log('Connected to MySQL.');
+  console.log('Connected to MySQL; database and app account are ready.');
 
   const schema = fs.readFileSync(path.join(__dirname, '../db/schema.sql'), 'utf8');
   const seed   = fs.readFileSync(path.join(__dirname, '../db/seed.sql'), 'utf8');

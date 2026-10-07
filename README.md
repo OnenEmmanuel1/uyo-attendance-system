@@ -90,6 +90,8 @@ cp .env.example .env
 
 ```bash
 # Option A: Using the init script
+# Set DB_ADMIN_USER and DB_ADMIN_PASSWORD in .env to a MySQL account
+# allowed to create databases and users (often your local root account).
 node scripts/initDb.js
 
 # Option B: Manual import

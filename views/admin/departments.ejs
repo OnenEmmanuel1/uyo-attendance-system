@@ -1,0 +1,45 @@
+<%- include('../partials/head', { title }) %>
+<div class="uuas-app">
+  <%- include('../partials/sidebar-admin') %>
+  <div class="uuas-main">
+    <%- include('../partials/navbar', { topbarTitle: 'Academic Departments' }) %>
+    <main class="uuas-content">
+      <div class="uuas-page-header uuas-flex-between uuas-mb-6">
+        <div>
+          <h1 class="uuas-h2">Academic Departments</h1>
+          <p class="uuas-text-sm uuas-muted" style="margin-top:.25rem">Manage the department options used for student and lecturer accounts.</p>
+        </div>
+      </div>
+      <div class="uuas-card" style="max-width:760px;margin-bottom:1.25rem">
+        <div class="uuas-card-body">
+          <% if (error) { %><div class="uuas-alert uuas-alert--error" role="alert"><%= error %></div><% } %>
+          <form method="POST" action="/admin/departments" class="uuas-flex uuas-gap-3" style="align-items:end;flex-wrap:wrap">
+            <div class="uuas-form-group" style="flex:1;min-width:220px;margin:0">
+              <label class="uuas-label" for="department-name">New department</label>
+              <input class="uuas-input" id="department-name" name="name" maxlength="100" required placeholder="e.g. Computer Science">
+            </div>
+            <button class="uuas-btn uuas-btn--primary" type="submit">Add Department</button>
+          </form>
+        </div>
+      </div>
+      <div class="uuas-card">
+        <div class="uuas-table-wrapper">
+          <table class="uuas-table" aria-label="Academic departments">
+            <thead><tr><th>Department</th><th>Status</th><th class="uuas-text-right">Action</th></tr></thead>
+            <tbody>
+              <% if (!departments.length) { %><tr><td colspan="3" class="uuas-empty">No departments have been added.</td></tr><% } %>
+              <% departments.forEach(department => { %>
+                <tr>
+                  <td class="uuas-bold"><%= department.name %></td>
+                  <td><span class="uuas-pill uuas-pill--<%= department.is_active ? 'ontime' : 'absent' %>"><%= department.is_active ? 'Active' : 'Inactive' %></span></td>
+                  <td class="uuas-text-right"><form method="POST" action="/admin/departments/<%= department.id %>/toggle"><button class="uuas-btn uuas-btn--outline uuas-btn--sm" type="submit"><%= department.is_active ? 'Deactivate' : 'Reactivate' %></button></form></td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<%- include('../partials/footer') %>

@@ -53,6 +53,7 @@ router.get('/', async (req, res, next) => {
     }
 
     const profileUser = rows[0];
+    const [departments] = await query('SELECT name FROM departments WHERE is_active = 1 OR name = ? ORDER BY name', [profileUser.department || '']);
 
     // Check if user has registered WebAuthn credentials
     const [webauthnRows] = await query(
@@ -64,6 +65,7 @@ router.get('/', async (req, res, next) => {
     res.render('profile/index', {
       title: 'My Profile — AttendUyo',
       profileUser,
+      departments,
       hasBiometrics,
       activeNav: 'profile',
     });
@@ -90,6 +92,17 @@ router.post('/', (req, res, next) => {
         return res.redirect('/login');
       }
       const existingUser = rows[0];
+
+      if (department && department.trim()) {
+        const [validDepartment] = await query(
+          'SELECT name FROM departments WHERE name = ? AND (is_active = 1 OR name = ?)',
+          [department.trim(), existingUser.department || '']
+        );
+        if (!validDepartment.length) {
+          req.flash('error', 'Select a valid academic department.');
+          return res.redirect('/profile');
+        }
+      }
 
       // Build update fields
       const updates = [];

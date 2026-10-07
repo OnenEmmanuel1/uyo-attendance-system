@@ -11,6 +11,29 @@
         </div>
       </div>
 
+      <div class="uuas-card" style="margin-bottom:1.25rem">
+        <div class="uuas-card-body">
+          <h2 class="uuas-h3">Add Course</h2>
+          <p class="uuas-text-xs uuas-muted" style="margin:.25rem 0 1rem">Create a course and assign it to a lecturer.</p>
+          <form method="POST" action="/admin/courses/new">
+            <div class="uuas-grid-2" style="gap:1rem">
+              <div class="uuas-form-group"><label class="uuas-label" for="new-course-code">Course code</label><input class="uuas-input" id="new-course-code" name="code" maxlength="20" required placeholder="CSC301"></div>
+              <div class="uuas-form-group"><label class="uuas-label" for="new-course-title">Course title</label><input class="uuas-input" id="new-course-title" name="title" maxlength="200" required placeholder="Data Structures"></div>
+            </div>
+            <div class="uuas-grid-2" style="gap:1rem">
+              <div class="uuas-form-group"><label class="uuas-label" for="new-course-dept">Department</label><select class="uuas-select" id="new-course-dept" name="department" required><option value="">Select department</option><% departments.forEach(d => { %><option value="<%= d.name %>"><%= d.name %></option><% }) %></select></div>
+              <div class="uuas-form-group"><label class="uuas-label" for="new-course-lecturer">Lecturer</label><select class="uuas-select" id="new-course-lecturer" name="lecturer_id" required><option value="">Select lecturer</option><% lecturers.forEach(l => { %><option value="<%= l.id %>"><%= l.name %></option><% }) %></select></div>
+            </div>
+            <div class="uuas-grid-2" style="gap:1rem">
+              <div class="uuas-form-group"><label class="uuas-label" for="new-course-level">Level</label><select class="uuas-select" id="new-course-level" name="level"><option value="">Select level</option><% [100,200,300,400,500].forEach(level => { %><option value="<%= level %>"><%= level %> Level</option><% }) %></select></div>
+              <div class="uuas-form-group"><label class="uuas-label" for="new-course-semester">Semester</label><select class="uuas-select" id="new-course-semester" name="semester"><option value="first">First</option><option value="second">Second</option></select></div>
+            </div>
+            <button class="uuas-btn uuas-btn--primary" type="submit" <%= (!lecturers.length || !departments.length) ? 'disabled' : '' %>>Add Course</button>
+            <% if (!lecturers.length) { %><span class="uuas-text-xs uuas-muted"> Add a lecturer account before creating a course.</span><% } %>
+          </form>
+        </div>
+      </div>
+
       <div class="uuas-card">
         <div class="uuas-table-card-header">
           <div>

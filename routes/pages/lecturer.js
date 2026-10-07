@@ -62,8 +62,11 @@ router.get('/courses', async (req, res, next) => {
 });
 
 // GET /lecturer/courses/new
-router.get('/courses/new', (req, res) => {
-  res.render('lecturer/create-course', { title: 'Create Course — AttendUyo', error: null });
+router.get('/courses/new', async (req, res, next) => {
+  try {
+    const [departments] = await query('SELECT name FROM departments WHERE is_active = 1 ORDER BY name');
+    res.render('lecturer/create-course', { title: 'Create Course — AttendUyo', error: null, departments });
+  } catch (err) { next(err); }
 });
 
 // POST /lecturer/courses/new
@@ -71,6 +74,13 @@ router.post('/courses/new', async (req, res, next) => {
   try {
     const { code, title, department, level, semester, credit_units,
             venue_name, venue_lat, venue_lng, gps_radius_meters } = req.body;
+    const [validDepartment] = await query('SELECT name FROM departments WHERE name = ? AND is_active = 1', [department]);
+    if (!validDepartment.length) {
+      const [departments] = await query('SELECT name FROM departments WHERE is_active = 1 ORDER BY name');
+      return res.status(400).render('lecturer/create-course', {
+        title: 'Create Course — AttendUyo', error: 'Select a valid academic department.', departments,
+      });
+    }
     await query(
       `INSERT INTO courses (code, title, lecturer_id, department, level, semester,
         credit_units, venue_name, venue_lat, venue_lng, gps_radius_meters)
@@ -82,9 +92,11 @@ router.post('/courses/new', async (req, res, next) => {
     res.redirect('/lecturer/courses');
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') {
+      const [departments] = await query('SELECT name FROM departments WHERE is_active = 1 ORDER BY name');
       return res.render('lecturer/create-course', {
         title: 'Create Course — AttendUyo',
         error: 'A course with that code already exists.',
+        departments,
       });
     }
     next(err);
