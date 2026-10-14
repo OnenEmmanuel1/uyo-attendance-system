@@ -54,19 +54,10 @@ router.get('/', async (req, res, next) => {
 
     const profileUser = rows[0];
     const [departments] = await query('SELECT name FROM departments WHERE is_active = 1 OR name = ? ORDER BY name', [profileUser.department || '']);
-
-    // Check if user has registered WebAuthn credentials
-    const [webauthnRows] = await query(
-      'SELECT COUNT(*) AS count FROM webauthn_credentials WHERE user_id = ?',
-      [userId]
-    );
-    const hasBiometrics = (webauthnRows[0]?.count || 0) > 0;
-
     res.render('profile/index', {
       title: 'My Profile — AttendUyo',
       profileUser,
       departments,
-      hasBiometrics,
       activeNav: 'profile',
     });
   } catch (err) {

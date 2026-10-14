@@ -5,7 +5,7 @@
  * Route handlers must NOT contain business logic — only call this engine.
  */
 
-const { v4: uuidv4 }       = require('uuid');
+const { randomInt }         = require('crypto');
 const QRCode               = require('qrcode');
 const { stringify }        = require('csv-stringify/sync');
 const { query, withTransaction } = require('../config/db');
@@ -38,14 +38,13 @@ function toRad(deg) { return deg * (Math.PI / 180); }
  * Open a new attendance session for a course.
  * @param {number}  courseId
  * @param {number}  lecturerId
- * @param {object}  opts  { title, requiresGps, requiresBiometric, gpsRadius, durationMinutes }
+ * @param {object}  opts  { title, requiresGps, gpsRadius, durationMinutes }
  * @returns {object} session record
  */
 async function createAttendanceSession(courseId, lecturerId, opts = {}) {
   const {
     title             = null,
     requiresGps       = false,
-    requiresBiometric = false,
     gpsRadius         = parseInt(process.env.GPS_DEFAULT_RADIUS || '100'),
     durationMinutes   = parseInt(process.env.SESSION_EXPIRY_MINUTES || '60'),
   } = opts;
@@ -62,23 +61,21 @@ async function createAttendanceSession(courseId, lecturerId, opts = {}) {
   // Check no session is already open for this course
   const [open] = await query(
     `SELECT id FROM attendance_sessions
-     WHERE course_id = ? AND closed_at IS NULL AND expires_at > NOW()`,
+     WHERE course_id = ? AND closed_at IS NULL AND (is_approved = 0 OR expires_at > NOW())`,
     [courseId]
   );
   if (open.length) {
     throw Object.assign(new Error('A session is already open for this course'), { status: 409 });
   }
 
-  const token     = uuidv4().replace(/-/g, '');
-  const expiresAt = new Date(Date.now() + durationMinutes * 60_000);
-
+  // Short numeric code is easy to read aloud; approval controls when it becomes usable.
+  const token     = String(randomInt(100000, 1000000));
   const [result] = await query(
     `INSERT INTO attendance_sessions
-       (course_id, session_token, title, requires_gps, requires_biometric,
-        gps_radius_meters, expires_at, created_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [courseId, token, title, requiresGps ? 1 : 0, requiresBiometric ? 1 : 0,
-     gpsRadius, expiresAt, lecturerId]
+       (course_id, session_token, title, requires_gps,
+        gps_radius_meters, expires_at, duration_minutes, created_by)
+     VALUES (?, ?, ?, ?, ?, NULL, ?, ?)`,
+    [courseId, token, title, requiresGps ? 1 : 0, gpsRadius, durationMinutes, lecturerId]
   );
 
   const [rows] = await query(
@@ -140,7 +137,7 @@ async function getSessionDetails(sessionId) {
  */
 async function getOpenSession(courseId) {
   const [rows] = await query(
-    `SELECT * FROM attendance_sessions
+    `SELECT *, IF(is_approved = 1, session_token, NULL) AS session_token FROM attendance_sessions
      WHERE course_id = ? AND closed_at IS NULL AND expires_at > NOW()
      ORDER BY opened_at DESC LIMIT 1`,
     [courseId]
@@ -161,6 +158,7 @@ async function resolveSessionToken(token) {
     [token]
   );
   if (!rows.length) throw Object.assign(new Error('Invalid session token'), { status: 404 });
+  if (!rows[0].is_approved) throw Object.assign(new Error('This session is waiting for admin approval'), { status: 403 });
   return rows[0];
 }
 
@@ -193,11 +191,11 @@ async function generateSessionQR(sessionToken, baseUrl) {
  * @param {number}  studentId
  * @param {object}  opts
  *   gpsCoords?        { lat, lng }
- *   biometricVerified boolean
+ *   
  * @returns {object} attendance record
  */
 async function validateAndMarkAttendance(token, studentId, opts = {}) {
-  const { gpsCoords = null, biometricVerified = false } = opts;
+  const { gpsCoords = null } = opts;
 
   // 1. Resolve session
   const session = await resolveSessionToken(token);
@@ -266,25 +264,16 @@ async function validateAndMarkAttendance(token, studentId, opts = {}) {
     }
   }
 
-  // 6. Biometric validation (if required)
-  if (session.requires_biometric && !biometricVerified) {
-    throw Object.assign(
-      new Error('Biometric verification is required for this session'),
-      { status: 422 }
-    );
-  }
-
-  // 7. Determine method
+  // 6. Determine method
   let method = 'qr';
-  if (gpsLat !== null && biometricVerified)  method = 'biometric';
-  else if (gpsLat !== null)                  method = 'gps';
+  if (gpsLat !== null) method = 'gps';
 
   // 8. Insert record
   const [result] = await query(
     `INSERT INTO attendance_records
-       (session_id, student_id, method, gps_lat, gps_lng, gps_distance_meters, biometric_verified, is_present)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 1)`,
-    [session.id, studentId, method, gpsLat, gpsLng, gpsDistanceMeters, biometricVerified ? 1 : 0]
+       (session_id, student_id, method, gps_lat, gps_lng, gps_distance_meters, is_present)
+     VALUES (?, ?, ?, ?, ?, ?, 1)`,
+    [session.id, studentId, method, gpsLat, gpsLng, gpsDistanceMeters]
   );
 
   const [record] = await query(
@@ -301,12 +290,29 @@ async function validateAndMarkAttendance(token, studentId, opts = {}) {
 async function getSessionAttendance(sessionId) {
   const [rows] = await query(
     `SELECT ar.id, ar.student_id, ar.method, ar.marked_at,
-            ar.gps_distance_meters, ar.biometric_verified, ar.is_present,
+            ar.gps_distance_meters, ar.is_present,
             u.name AS student_name, u.matric_or_staff_id AS matric
      FROM attendance_records ar
      JOIN users u ON u.id = ar.student_id
      WHERE ar.session_id = ?
      ORDER BY ar.marked_at ASC`,
+    [sessionId]
+  );
+  return rows;
+}
+
+async function getSessionRoster(sessionId) {
+  const [rows] = await query(
+    `SELECT u.id AS student_id, u.name AS student_name,
+            u.matric_or_staff_id AS matric,
+            CASE WHEN ar.id IS NOT NULL AND ar.is_present = 1 THEN 1 ELSE 0 END AS is_present,
+            ar.method, ar.marked_at
+     FROM attendance_sessions s
+     JOIN enrollments e ON e.course_id = s.course_id
+     JOIN users u ON u.id = e.student_id
+     LEFT JOIN attendance_records ar ON ar.session_id = s.id AND ar.student_id = u.id
+     WHERE s.id = ?
+     ORDER BY u.name ASC`,
     [sessionId]
   );
   return rows;
@@ -463,7 +469,7 @@ async function exportSessionCSV(sessionId) {
     Method:    r.method,
     'Marked At': r.marked_at ? new Date(r.marked_at).toISOString() : '',
     'GPS (m)': r.gps_distance_meters ?? '',
-    Biometric: r.biometric_verified ? 'Yes' : 'No',
+
   }));
 
   return stringify(data, { header: true });
@@ -490,7 +496,7 @@ async function getStudentAttendanceHistory(studentId) {
   const [rows] = await query(
     `SELECT c.code AS course_code, c.title AS course_title,
             s.title AS session_title, s.opened_at,
-            ar.method, ar.marked_at, ar.is_present, ar.gps_distance_meters, ar.biometric_verified,
+            ar.method, ar.marked_at, ar.is_present, ar.gps_distance_meters,
             (SELECT COUNT(*) FROM attendance_sessions s2
              WHERE s2.course_id = c.id AND s2.closed_at IS NOT NULL) AS total_sessions,
             (SELECT COUNT(*) FROM attendance_records ar2
@@ -563,6 +569,7 @@ module.exports = {
   computeGpsDistance,
   // Reporting
   getSessionAttendance,
+  getSessionRoster,
   getCourseAttendanceReport,
   getAtRiskStudents,
   // Manual

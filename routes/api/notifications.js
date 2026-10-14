@@ -19,7 +19,7 @@ router.get('/', async (req, res, next) => {
          FROM attendance_sessions s
          JOIN courses c ON s.course_id = c.id
          JOIN enrollments e ON e.course_id = c.id
-         WHERE e.student_id = ? AND s.status = 'open' AND s.expires_at > NOW()
+         WHERE e.student_id = ? AND s.closed_at IS NULL AND s.is_approved = 1 AND s.expires_at > NOW()
          ORDER BY s.opened_at DESC`,
         [user.id, user.id]
       );
@@ -71,7 +71,7 @@ router.get('/', async (req, res, next) => {
                 (SELECT COUNT(*) FROM attendance_records ar WHERE ar.session_id = s.id) AS attendee_count
          FROM attendance_sessions s
          JOIN courses c ON s.course_id = c.id
-         WHERE s.lecturer_id = ? AND s.status = 'open' AND s.expires_at > NOW()
+         WHERE c.lecturer_id = ? AND s.closed_at IS NULL AND s.is_approved = 1 AND s.expires_at > NOW()
          ORDER BY s.opened_at DESC`,
         [user.id]
       );
@@ -95,7 +95,7 @@ router.get('/', async (req, res, next) => {
                 (SELECT COUNT(*) FROM attendance_records ar WHERE ar.session_id = s.id) AS attendee_count
          FROM attendance_sessions s
          JOIN courses c ON s.course_id = c.id
-         WHERE s.lecturer_id = ? AND s.status = 'closed'
+         WHERE c.lecturer_id = ? AND s.closed_at IS NOT NULL
          ORDER BY s.closed_at DESC
          LIMIT 2`,
         [user.id]
@@ -116,9 +116,30 @@ router.get('/', async (req, res, next) => {
 
     } else if (user.role === 'admin') {
       // Admin notifications
+      const [pendingSessions] = await query(
+        `SELECT s.id, s.opened_at, s.expires_at, s.title,
+                c.code, c.title AS course_title, lecturer.name AS lecturer_name
+         FROM attendance_sessions s
+         JOIN courses c ON c.id = s.course_id
+         JOIN users lecturer ON lecturer.id = s.created_by
+         WHERE s.is_approved = 0 AND s.closed_at IS NULL AND s.expires_at > NOW()
+         ORDER BY s.opened_at DESC`
+      );
+      pendingSessions.forEach(s => notifications.push({
+        id: `session-approval-${s.id}`,
+        type: 'session_pending',
+        title: `Token verification needed: ${s.code}`,
+        message: `${s.lecturer_name} requested approval for ${s.title || s.course_title}.`,
+        link: `/admin/sessions/${s.id}`,
+        createdAt: s.opened_at,
+        // Keep verification requests actionable until approved or expired.
+        isUnread: true,
+        icon: 'bell',
+      }));
+
       const [stats] = await query(
         `SELECT
-           (SELECT COUNT(*) FROM attendance_sessions WHERE status = 'open') AS open_sessions,
+            (SELECT COUNT(*) FROM attendance_sessions WHERE closed_at IS NULL AND is_approved = 1 AND expires_at > NOW()) AS open_sessions,
            (SELECT COUNT(*) FROM users WHERE is_active = 1) AS active_users,
            (SELECT COUNT(*) FROM attendance_records WHERE DATE(marked_at) = CURDATE()) AS marks_today`
       );

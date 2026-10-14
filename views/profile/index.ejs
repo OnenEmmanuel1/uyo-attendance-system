@@ -51,17 +51,6 @@
                                       <%= profileUser.department %>
                                     </span>
                                     <% } %>
-                                      <% if (hasBiometrics) { %>
-                                        <span class="uuas-pill uuas-pill--ontime"
-                                          title="Hardware WebAuthn Biometric Registered">
-                                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-                                            stroke="currentColor" stroke-width="2" aria-hidden="true"
-                                            style="margin-right:3px">
-                                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                                          </svg>
-                                          Biometric Active
-                                        </span>
-                                        <% } %>
                                 </div>
                               </div>
                             </div>
@@ -245,11 +234,6 @@
                                       </dd>
                                       <dt class="uuas-muted">Account Status</dt>
                                       <dd><span class="uuas-pill uuas-pill--ontime">Active & Verified</span></dd>
-                                      <dt class="uuas-muted">WebAuthn</dt>
-                                      <dd>
-                                        <%= hasBiometrics ? 'Hardware key registered' : 'No biometric device configured'
-                                          %>
-                                      </dd>
                                       <dt class="uuas-muted">Portal Scope</dt>
                                       <dd>University of Uyo Attendance (UUAS)</dd>
                                     </dl>

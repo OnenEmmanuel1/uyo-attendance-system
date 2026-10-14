@@ -5,9 +5,9 @@ const { requireRole } = require('../../middleware/auth');
 
 // POST /api/attendance/mark
 // Student marks their own attendance
-router.post('/mark', async (req, res, next) => {
+router.post('/mark', requireRole('student'), async (req, res, next) => {
   try {
-    const { token, gps_lat, gps_lng, biometric_verified } = req.body;
+    const { token, gps_lat, gps_lng } = req.body;
 
     if (!token) {
       return res.status(422).json({ error: 'Session token is required' });
@@ -22,7 +22,6 @@ router.post('/mark', async (req, res, next) => {
       req.session.user.id,
       {
         gpsCoords,
-        biometricVerified: biometric_verified === true || biometric_verified === 'true',
       }
     );
 
@@ -33,6 +32,13 @@ router.post('/mark', async (req, res, next) => {
 // GET /api/attendance/session/:id  — session attendance list
 router.get('/session/:id', async (req, res, next) => {
   try {
+    if (req.session.user.role !== 'admin') {
+      const [owned] = await require('../../config/db').query(
+        `SELECT s.id FROM attendance_sessions s JOIN courses c ON c.id = s.course_id
+         WHERE s.id = ? AND c.lecturer_id = ?`, [req.params.id, req.session.user.id]
+      );
+      if (!owned.length) return res.status(403).json({ error: 'Not authorised to view this attendance.' });
+    }
     const attendance = await engine.getSessionAttendance(parseInt(req.params.id));
     res.json({ attendance });
   } catch (err) { next(err); }

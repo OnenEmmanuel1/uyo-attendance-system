@@ -1,0 +1,44 @@
+<%- include('../partials/head', { title }) %>
+<div class="uuas-app">
+  <%- include('../partials/sidebar-admin') %>
+  <main class="uuas-main">
+    <%- include('../partials/navbar', { topbarTitle: 'Attendance Sessions' }) %>
+    <section class="uuas-content">
+      <%- include('../partials/flash') %>
+      <div class="uuas-page-header">
+        <div><h1 class="uuas-h2">Attendance sessions</h1><p class="uuas-text-sm uuas-muted">Verify lecturer sessions and review student attendance across courses.</p></div>
+      </div>
+      <% if (!pendingCount) { %>
+        <div class="uuas-alert uuas-alert--info uuas-mb-4">No active token verification requests. A lecturer must open a new attendance session; it will appear here for approval.</div>
+      <% } else { %>
+        <div class="uuas-alert uuas-alert--warning uuas-mb-4"><strong><%= pendingCount %></strong> session token(s) need verification.</div>
+      <% } %>
+      <div class="uuas-card">
+        <div class="uuas-card-body" style="overflow-x:auto">
+          <table class="uuas-table" aria-label="Attendance sessions">
+            <thead><tr><th>Course / Level</th><th>Lecturer</th><th>Session</th><th>Attendance</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody>
+              <% if (!sessions.length) { %><tr><td colspan="6">No attendance sessions yet.</td></tr><% } %>
+              <% sessions.forEach(s => { %>
+                <tr>
+                  <td><strong><%= s.code %></strong><br><span class="uuas-text-xs uuas-muted"><%= s.course_title %> · Level <%= s.level || '—' %></span></td>
+                  <td><%= s.lecturer_name %></td>
+                  <td><%= s.title || 'Class attendance' %><br><span class="uuas-text-xs uuas-muted"><%= new Date(s.opened_at).toLocaleString() %></span></td>
+                  <td><%= s.present_count %> present</td>
+                  <td><% if (s.closed_at) { %>Closed<% } else if (new Date(s.expires_at) < new Date()) { %>Expired · token inactive<% } else if (Number(s.is_approved)) { %>Approved · token <strong><%= s.session_token %></strong><% } else { %>Awaiting verification<% } %></td>
+                  <td>
+                    <% if (!Number(s.is_approved) && !s.closed_at && new Date(s.expires_at) > new Date()) { %>
+                      <form method="POST" action="/admin/sessions/<%= s.id %>/approve"><button class="uuas-btn uuas-btn--primary uuas-btn--sm">Approve token</button></form>
+                    <% } %>
+                    <a class="uuas-btn uuas-btn--outline uuas-btn--sm" href="/admin/sessions/<%= s.id %>">View roster</a>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+<%- include('../partials/footer') %>

@@ -10,6 +10,11 @@ const QrScanner = (() => {
   async function start(elementId, onSuccess, onError) {
     if (isScanning) return;
 
+    if (!window.isSecureContext) {
+      onError('This browser blocks camera access on a plain HTTP site. Enter the session token below to continue.');
+      return;
+    }
+
     try {
       // Ensure previous scanner instance is cleared
       if (scanner) {
@@ -17,6 +22,7 @@ const QrScanner = (() => {
         scanner = null;
       }
 
+      if (typeof Html5Qrcode === 'undefined') throw new Error('QR scanner library did not load');
       scanner = new Html5Qrcode(elementId, { verbose: false });
       const config = {
         fps: 10,

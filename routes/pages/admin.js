@@ -198,6 +198,54 @@ router.post('/courses/:id/unenroll/:studentId', async (req, res, next) => {
 });
 
 // GET /admin/reports
+router.get('/sessions', async (req, res, next) => {
+  try {
+    const [sessions] = await query(
+      `SELECT s.id, s.title, s.session_token, s.opened_at, s.expires_at, s.closed_at,
+              s.is_approved, c.code, c.title AS course_title, c.level,
+              lecturer.name AS lecturer_name,
+              (SELECT COUNT(*) FROM attendance_records ar WHERE ar.session_id = s.id AND ar.is_present = 1) AS present_count
+       FROM attendance_sessions s
+       JOIN courses c ON c.id = s.course_id
+       JOIN users lecturer ON lecturer.id = s.created_by
+       ORDER BY s.opened_at DESC LIMIT 200`
+    );
+    const [[pending]] = await query(
+      `SELECT COUNT(*) AS count FROM attendance_sessions
+       WHERE is_approved = 0 AND closed_at IS NULL AND expires_at > NOW()`
+    );
+    res.render('admin/sessions', {
+      title: 'Attendance Sessions — AttendUyo', sessions, pendingCount: Number(pending.count || 0),
+    });
+  } catch (err) { next(err); }
+});
+
+router.get('/sessions/:id', async (req, res, next) => {
+  try {
+    const session = await engine.getSessionDetails(parseInt(req.params.id));
+    const roster = await engine.getSessionRoster(session.id);
+    const isFinished = Boolean(session.closed_at) || new Date(session.expires_at) <= new Date();
+    res.render('admin/session-detail', {
+      title: `Attendance — ${session.course_code}`, session, roster, isFinished,
+    });
+  } catch (err) { next(err); }
+});
+
+router.post('/sessions/:id/approve', async (req, res, next) => {
+  try {
+    const [result] = await query(
+      `UPDATE attendance_sessions SET is_approved = 1, approved_by = ?, approved_at = NOW()
+       WHERE id = ? AND is_approved = 0 AND closed_at IS NULL AND expires_at > NOW()`,
+      [req.session.user.id, parseInt(req.params.id)]
+    );
+    req.flash('success', result.affectedRows
+      ? 'Session approved. The lecturer token is now active.'
+      : 'This session is already approved, closed, or expired.');
+    res.redirect('/admin/sessions');
+  } catch (err) { next(err); }
+});
+
+// GET /admin/reports
 router.get('/reports', async (req, res, next) => {
   try {
     const threshold = parseInt(req.query.threshold || process.env.AT_RISK_THRESHOLD || '75');

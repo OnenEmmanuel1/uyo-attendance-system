@@ -31,18 +31,6 @@ CREATE TABLE users (
   INDEX idx_email (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ─── WebAuthn Credentials ────────────────────────────────────
-CREATE TABLE webauthn_credentials (
-  id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  user_id         INT UNSIGNED NOT NULL,
-  credential_id   TEXT NOT NULL,
-  public_key      TEXT NOT NULL,
-  counter         BIGINT UNSIGNED NOT NULL DEFAULT 0,
-  aaguid          VARCHAR(64),
-  transports      VARCHAR(255),
-  created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ─── Courses ─────────────────────────────────────────────────
 CREATE TABLE courses (
@@ -85,14 +73,18 @@ CREATE TABLE attendance_sessions (
   session_token       VARCHAR(64)  NOT NULL UNIQUE,
   title               VARCHAR(200) DEFAULT NULL COMMENT 'e.g. Week 3 Lecture',
   requires_gps        BOOLEAN NOT NULL DEFAULT FALSE,
-  requires_biometric  BOOLEAN NOT NULL DEFAULT FALSE,
   gps_radius_meters   INT UNSIGNED DEFAULT 100,
   opened_at           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  expires_at          DATETIME NOT NULL,
+  expires_at          DATETIME DEFAULT NULL,
+  duration_minutes    SMALLINT UNSIGNED NOT NULL DEFAULT 60,
   closed_at           DATETIME DEFAULT NULL,
+  is_approved         BOOLEAN NOT NULL DEFAULT FALSE,
+  approved_by         INT UNSIGNED DEFAULT NULL,
+  approved_at         DATETIME DEFAULT NULL,
   created_by          INT UNSIGNED NOT NULL,
   FOREIGN KEY (course_id)   REFERENCES courses(id) ON DELETE CASCADE,
   FOREIGN KEY (created_by)  REFERENCES users(id)   ON DELETE RESTRICT,
+  FOREIGN KEY (approved_by) REFERENCES users(id) ON DELETE SET NULL,
   INDEX idx_token (session_token),
   INDEX idx_course_open (course_id, closed_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -102,12 +94,11 @@ CREATE TABLE attendance_records (
   id                  INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   session_id          INT UNSIGNED NOT NULL,
   student_id          INT UNSIGNED NOT NULL,
-  method              ENUM('qr','gps','biometric','manual') NOT NULL DEFAULT 'qr',
+  method              ENUM('qr','gps','manual') NOT NULL DEFAULT 'qr',
   marked_at           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   gps_lat             DECIMAL(10,7) DEFAULT NULL,
   gps_lng             DECIMAL(10,7) DEFAULT NULL,
   gps_distance_meters INT UNSIGNED DEFAULT NULL,
-  biometric_verified  BOOLEAN NOT NULL DEFAULT FALSE,
   is_present          BOOLEAN NOT NULL DEFAULT TRUE,
   UNIQUE KEY uq_session_student (session_id, student_id),
   FOREIGN KEY (session_id)  REFERENCES attendance_sessions(id) ON DELETE CASCADE,
@@ -123,7 +114,7 @@ CREATE TABLE manual_corrections (
   reason                TEXT NOT NULL,
   corrected_by          INT UNSIGNED NOT NULL,
   corrected_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  previous_method       ENUM('qr','gps','biometric','manual') DEFAULT NULL,
+  previous_method       ENUM('qr','gps','manual') DEFAULT NULL,
   previous_is_present   BOOLEAN DEFAULT NULL,
   FOREIGN KEY (attendance_record_id) REFERENCES attendance_records(id) ON DELETE CASCADE,
   FOREIGN KEY (corrected_by)         REFERENCES users(id) ON DELETE RESTRICT

@@ -80,39 +80,39 @@ INSERT INTO enrollments (course_id, student_id, enrolled_by) VALUES
 -- ─── Attendance Sessions (closed, historical) ─────────────────
 -- CSC301 - Session 1 (Week 1)
 INSERT INTO attendance_sessions
-  (course_id, session_token, title, requires_gps, requires_biometric, gps_radius_meters,
+  (course_id, session_token, title, requires_gps, gps_radius_meters,
    opened_at, expires_at, closed_at, created_by)
 VALUES
-(1, 'tok-csc301-s1', 'Week 1 — Introduction', FALSE, FALSE, 80,
+(1, 'tok-csc301-s1', 'Week 1 — Introduction', FALSE, 80,
  '2024-09-02 08:00:00', '2024-09-02 10:00:00', '2024-09-02 09:45:00', 2),
 
-(1, 'tok-csc301-s2', 'Week 2 — Arrays & Lists', TRUE, FALSE, 80,
+(1, 'tok-csc301-s2', 'Week 2 — Arrays & Lists', TRUE, 80,
  '2024-09-09 08:00:00', '2024-09-09 10:00:00', '2024-09-09 09:50:00', 2),
 
-(1, 'tok-csc301-s3', 'Week 3 — Stacks & Queues', TRUE, FALSE, 80,
+(1, 'tok-csc301-s3', 'Week 3 — Stacks & Queues', TRUE, 80,
  '2024-09-16 08:00:00', '2024-09-16 10:00:00', '2024-09-16 09:55:00', 2),
 
-(1, 'tok-csc301-s4', 'Week 4 — Trees', TRUE, FALSE, 80,
+(1, 'tok-csc301-s4', 'Week 4 — Trees', TRUE, 80,
  '2024-09-23 08:00:00', '2024-09-23 10:00:00', '2024-09-23 09:45:00', 2),
 
 -- CSC305 - 3 Sessions
-(2, 'tok-csc305-s1', 'Week 1 — OS Overview', FALSE, FALSE, 80,
+(2, 'tok-csc305-s1', 'Week 1 — OS Overview', FALSE, 80,
  '2024-09-03 10:00:00', '2024-09-03 12:00:00', '2024-09-03 11:50:00', 2),
 
-(2, 'tok-csc305-s2', 'Week 2 — Processes', TRUE, FALSE, 80,
+(2, 'tok-csc305-s2', 'Week 2 — Processes', TRUE, 80,
  '2024-09-10 10:00:00', '2024-09-10 12:00:00', '2024-09-10 11:45:00', 2),
 
-(2, 'tok-csc305-s3', 'Week 3 — Scheduling', TRUE, FALSE, 80,
+(2, 'tok-csc305-s3', 'Week 3 — Scheduling', TRUE, 80,
  '2024-09-17 10:00:00', '2024-09-17 12:00:00', '2024-09-17 11:55:00', 2),
 
 -- EEE301 - 3 Sessions
-(3, 'tok-eee301-s1', 'Week 1 — Fundamentals', FALSE, FALSE, 100,
+(3, 'tok-eee301-s1', 'Week 1 — Fundamentals', FALSE, 100,
  '2024-09-04 14:00:00', '2024-09-04 16:00:00', '2024-09-04 15:55:00', 3),
 
-(3, 'tok-eee301-s2', 'Week 2 — KVL & KCL', TRUE, FALSE, 100,
+(3, 'tok-eee301-s2', 'Week 2 — KVL & KCL', TRUE, 100,
  '2024-09-11 14:00:00', '2024-09-11 16:00:00', '2024-09-11 15:50:00', 3),
 
-(3, 'tok-eee301-s3', 'Week 3 — AC Circuits', TRUE, FALSE, 100,
+(3, 'tok-eee301-s3', 'Week 3 — AC Circuits', TRUE, 100,
  '2024-09-18 14:00:00', '2024-09-18 16:00:00', '2024-09-18 15:45:00', 3);
 
 -- ─── Attendance Records ───────────────────────────────────────

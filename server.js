@@ -19,6 +19,18 @@ async function start() {
     SELECT DISTINCT TRIM(department) FROM courses
     WHERE department IS NOT NULL AND TRIM(department) <> ''`);
 
+  // Sessions end at their scheduled expiry even if the lecturer logs out.
+  await query(`UPDATE attendance_sessions
+               SET closed_at = expires_at
+               WHERE closed_at IS NULL AND expires_at <= NOW()`);
+  const sessionExpiryTimer = setInterval(() => {
+    query(`UPDATE attendance_sessions
+           SET closed_at = expires_at
+           WHERE closed_at IS NULL AND expires_at <= NOW()`)
+      .catch(err => console.error('Session expiry update failed:', err.message));
+  }, 15000);
+  sessionExpiryTimer.unref();
+
   return app.listen(port, () => {
   console.log(`\n  ╔══════════════════════════════════════╗`);
   console.log(`  ║     AttendUyo — University of Uyo    ║`);

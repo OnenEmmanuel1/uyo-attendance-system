@@ -113,14 +113,18 @@ router.get('/session/:id', async (req, res, next) => {
     }
 
     const baseUrl  = `${req.protocol}://${req.get('host')}`;
-    const { dataUrl } = await engine.generateSessionQR(session.session_token, baseUrl);
+    const { dataUrl } = session.is_approved
+      ? await engine.generateSessionQR(session.session_token, baseUrl)
+      : { dataUrl: null };
     const attendance  = await engine.getSessionAttendance(session.id);
+    const roster = await engine.getSessionRoster(session.id);
 
     res.render('lecturer/session', {
       title:      `Live Session — ${session.course_code}`,
       session,
       qrDataUrl:  dataUrl,
       attendance,
+      roster,
     });
   } catch (err) { next(err); }
 });

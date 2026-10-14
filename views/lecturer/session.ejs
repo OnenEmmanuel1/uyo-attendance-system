@@ -7,7 +7,7 @@
       <!-- Session closed banner -->
       <div id="uuas-session-closed-banner" class="uuas-alert uuas-alert--warning uuas-hidden" style="display:none" role="status">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        Session has been closed. Students can no longer mark attendance.
+        <span id="uuas-session-finished-message">Session has ended. Students can no longer mark attendance.</span>
       </div>
 
       <!-- Top info bar -->
@@ -15,18 +15,22 @@
         <div>
           <div class="uuas-flex uuas-items-center uuas-gap-3">
             <h1 class="uuas-h2"><%= session.course_code %> — Live Attendance Session</h1>
-            <% if (!session.closed_at) { %>
+            <% if (!session.closed_at && new Date(session.expires_at) > new Date() && session.is_approved) { %>
               <span class="uuas-pill uuas-pill--ontime" style="display:inline-flex;align-items:center;gap:6px">
                 <span class="uuas-live-dot"></span> LIVE
               </span>
-            <% } else { %>
+            <% } else if (session.closed_at) { %>
               <span class="uuas-pill uuas-pill--leave">Closed</span>
+            <% } else if (new Date(session.expires_at) <= new Date()) { %>
+              <span class="uuas-pill uuas-pill--leave">Time finished</span>
+            <% } else { %>
+              <span class="uuas-pill uuas-pill--late">Awaiting admin verification</span>
             <% } %>
           </div>
           <p class="uuas-text-sm uuas-muted" style="margin-top:0.25rem"><%= session.course_title %> — <%= session.title || 'Lecture Attendance' %></p>
         </div>
         <div class="uuas-flex uuas-gap-2">
-          <% if (!session.closed_at) { %>
+          <% if (!session.closed_at && new Date(session.expires_at) > new Date()) { %>
             <button class="uuas-btn uuas-btn--danger" id="btn-close-session"
                     data-session-id="<%= session.id %>"
                     data-confirm="Close this session? Students will no longer be able to mark attendance.">
@@ -46,6 +50,9 @@
         const presentCount = attendance.filter(r => r.is_present).length;
         const totalEnrolled = session.enrolled_count || 0;
         const pendingCount = Math.max(0, totalEnrolled - presentCount);
+        const sessionFinished = Boolean(session.closed_at) || new Date(session.expires_at) <= new Date();
+        const presentAttendance = attendance.filter(r => Number(r.is_present) === 1);
+        const unmarkedStudents = roster.filter(r => Number(r.is_present) !== 1);
       %>
       <div class="uuas-stat-grid" style="margin-bottom:1.5rem">
         <div class="uuas-summary-card--mint">
@@ -94,9 +101,13 @@
             </div>
             <div class="uuas-card-body">
               <div class="uuas-qr-container">
+                <% if (session.is_approved) { %>
                 <img src="<%= qrDataUrl %>" alt="Attendance QR Code for session <%= session.id %>" class="uuas-qr-image" id="uuas-qr-img">
                 <div class="uuas-text-xs uuas-muted uuas-text-center">Display on projector or screen for students to scan</div>
                 <div class="uuas-qr-token" aria-label="Session token"><%= session.session_token %></div>
+                <% } else { %>
+                <div class="uuas-alert uuas-alert--warning">Waiting for an administrator to verify this session. The student token will appear after approval.</div>
+                <% } %>
               </div>
             </div>
           </div>
@@ -110,8 +121,6 @@
                 <dd class="uuas-bold"><%= session.venue_name || 'Not set' %></dd>
                 <dt class="uuas-muted">GPS Verification</dt>
                 <dd><% if (session.requires_gps) { %><span class="uuas-pill uuas-pill--ontime">Active (±<%= session.gps_radius_meters %>m)</span><% } else { %><span class="uuas-pill uuas-pill--leave">Disabled</span><% } %></dd>
-                <dt class="uuas-muted">Biometric Auth</dt>
-                <dd><% if (session.requires_biometric) { %><span class="uuas-pill uuas-pill--late">WebAuthn Required</span><% } else { %><span class="uuas-pill uuas-pill--leave">Disabled</span><% } %></dd>
                 <dt class="uuas-muted">Opened At</dt>
                 <dd><%= new Date(session.opened_at).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) %></dd>
                 <dt class="uuas-muted">Expires At</dt>
@@ -131,8 +140,8 @@
           <div class="uuas-card">
             <div class="uuas-card-header">
               <div>
-                <h2 class="uuas-h3">Live Attendee Roster</h2>
-                <p class="uuas-text-xs uuas-muted" style="margin-top:2px">Real-time attendance check-in feed</p>
+                <h2 class="uuas-h3">Attended Students</h2>
+                <p class="uuas-text-xs uuas-muted" style="margin-top:2px">Students with a present attendance record for this session.</p>
               </div>
               <span class="uuas-pill uuas-pill--ontime" style="display:inline-flex;align-items:center;gap:6px">
                 <span class="uuas-live-dot"></span> Live Polling
@@ -150,10 +159,10 @@
                   </tr>
                 </thead>
                 <tbody id="uuas-live-list">
-                  <% if (!attendance.length) { %>
+                  <% if (!presentAttendance.length) { %>
                     <tr><td colspan="5" style="padding:2.5rem;text-align:center;color:var(--uuas-text-muted)">Waiting for students to scan QR code...</td></tr>
                   <% } else { %>
-                    <% attendance.forEach((r, i) => { %>
+                    <% presentAttendance.forEach((r, i) => { %>
                       <tr>
                         <td class="uuas-text-xs uuas-muted"><%= i+1 %></td>
                         <td>
@@ -217,6 +226,28 @@
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <div class="uuas-card uuas-mt-4">
+        <div class="uuas-card-header">
+          <div>
+            <h2 class="uuas-h3" id="uuas-unmarked-title"><%= sessionFinished ? 'Did Not Attend' : 'Not Yet Marked' %></h2>
+            <p class="uuas-text-xs uuas-muted" id="uuas-unmarked-description" style="margin-top:2px"><%= sessionFinished ? 'Students without a present attendance record after this session ended.' : 'These students can still mark attendance while the session is open.' %></p>
+          </div>
+          <span class="uuas-pill uuas-pill--absent" id="uuas-absent-count"><%= roster.filter(r => !r.is_present).length %> students</span>
+        </div>
+        <div class="uuas-table-wrapper">
+          <table class="uuas-table" aria-label="Students not marked present">
+            <thead><tr><th scope="col">Student</th><th scope="col">Matric No.</th><th scope="col">Status</th></tr></thead>
+            <tbody id="uuas-absent-list">
+              <% if (!unmarkedStudents.length) { %>
+                <tr><td colspan="3" style="padding:1.5rem;text-align:center;color:var(--uuas-text-muted)">All enrolled students are marked present.</td></tr>
+              <% } else { unmarkedStudents.forEach(r => { %>
+                <tr><td><span class="uuas-bold"><%= r.student_name %></span></td><td class="uuas-text-sm uuas-muted"><%= r.matric || '—' %></td><td><span class="uuas-pill <%= sessionFinished ? 'uuas-pill--absent' : 'uuas-pill--late' %>"><%= sessionFinished ? 'Absent' : 'Not yet marked' %></span></td></tr>
+              <% }) } %>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

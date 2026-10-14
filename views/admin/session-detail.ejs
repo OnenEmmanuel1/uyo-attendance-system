@@ -1,0 +1,32 @@
+<%- include('../partials/head', { title }) %>
+<div class="uuas-app">
+  <%- include('../partials/sidebar-admin') %>
+  <main class="uuas-main">
+    <%- include('../partials/navbar', { topbarTitle: 'Attendance Review' }) %>
+    <section class="uuas-content">
+      <div class="uuas-page-header"><div><h1 class="uuas-h2"><%= session.course_code %> attendance</h1><p class="uuas-text-sm uuas-muted"><%= session.course_title %> · <%= session.lecturer_name %> · <%= session.title || 'Class attendance' %></p></div><a href="/admin/sessions" class="uuas-btn uuas-btn--ghost">Back to sessions</a></div>
+      <% const presentCount = roster.filter(r => Number(r.is_present) === 1).length; %>
+      <% const unmarkedCount = roster.length - presentCount; %>
+      <% const absentCount = isFinished ? unmarkedCount : 0; %>
+      <% if (!Number(session.is_approved) && !session.closed_at && new Date(session.expires_at) > new Date()) { %>
+        <div class="uuas-alert uuas-alert--warning uuas-mb-4">This token is awaiting verification. Students cannot mark attendance until you approve it.</div>
+      <% } %>
+      <div class="uuas-stat-grid uuas-mb-4">
+        <div class="uuas-summary-card--mint"><div class="uuas-summary-title">Present</div><div class="uuas-summary-value"><%= presentCount %></div></div>
+        <% if (isFinished) { %>
+          <div class="uuas-summary-card--dark"><div class="uuas-summary-title">Absent</div><div class="uuas-summary-value"><%= absentCount %></div></div>
+        <% } else { %>
+          <div class="uuas-summary-card--dark"><div class="uuas-summary-title">Not yet marked</div><div class="uuas-summary-value"><%= unmarkedCount %></div></div>
+        <% } %>
+        <div class="uuas-summary-card--green"><div class="uuas-summary-title">Enrolled</div><div class="uuas-summary-value"><%= roster.length %></div></div>
+      </div>
+      <div class="uuas-card"><div class="uuas-card-body" style="overflow-x:auto">
+        <table class="uuas-table" aria-label="Session class roster"><thead><tr><th>Student</th><th>Matric number</th><th>Attendance</th><th>Marked at</th><th>Method</th></tr></thead><tbody>
+          <% if (!roster.length) { %><tr><td colspan="5">No students are enrolled in this course.</td></tr><% } %>
+          <% roster.forEach(r => { %><tr><td><%= r.student_name %></td><td><%= r.matric || '—' %></td><td><% if (Number(r.is_present) === 1) { %><span class="uuas-pill uuas-pill--ontime">Present</span><% } else if (isFinished) { %><span class="uuas-pill uuas-pill--absent">Absent</span><% } else { %><span class="uuas-pill uuas-pill--late">Not yet marked</span><% } %></td><td><%= r.marked_at ? new Date(r.marked_at).toLocaleString() : '—' %></td><td><%= r.method || '—' %></td></tr><% }) %>
+        </tbody></table>
+      </div></div>
+    </section>
+  </main>
+</div>
+<%- include('../partials/footer') %>

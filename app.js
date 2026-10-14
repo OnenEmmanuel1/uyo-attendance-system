@@ -26,7 +26,6 @@ const sessionsApi      = require('./routes/api/sessions');
 const attendanceApi    = require('./routes/api/attendance');
 const usersApi         = require('./routes/api/users');
 const coursesApi       = require('./routes/api/courses');
-const webauthnApi      = require('./routes/api/webauthn');
 const notificationsApi = require('./routes/api/notifications');
 
 const app = express();
@@ -55,7 +54,8 @@ app.use(session({
   resave:            false,
   saveUninitialized: false,
   cookie: {
-    secure:   process.env.NODE_ENV === 'production',
+    secure:   process.env.SESSION_COOKIE_SECURE === 'true' ||
+              (process.env.NODE_ENV === 'production' && process.env.SESSION_COOKIE_SECURE !== 'false'),
     httpOnly: true,
     maxAge:   8 * 60 * 60 * 1000, // 8 hours
   },
@@ -95,7 +95,6 @@ app.use('/api/sessions',      requireAuth, sessionsApi);
 app.use('/api/attendance',    requireAuth, attendanceApi);
 app.use('/api/users',         requireAuth, requireRole('admin'), usersApi);
 app.use('/api/courses',       requireAuth, coursesApi);
-app.use('/api/webauthn',      requireAuth, webauthnApi);
 app.use('/api/notifications', requireAuth, notificationsApi);
 
 // ── 404 Handler ────────────────────────────────────────────────

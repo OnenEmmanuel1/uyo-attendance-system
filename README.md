@@ -1,7 +1,7 @@
 # AttendUyo — Student Attendance Management System
 ### University of Uyo
 
-A production-ready full-stack web application for managing student attendance with **QR Code**, **GPS**, **WebAuthn Biometric**, and **Manual** verification methods.
+A production-ready full-stack web application for managing student attendance with **QR Code**, **GPS**, and **Manual** verification methods.
 
 ---
 
@@ -37,7 +37,6 @@ uyo attendance/
 │       ├── attendance.js     # /api/attendance/*
 │       ├── users.js          # /api/users/*
 │       ├── courses.js        # /api/courses/*
-│       └── webauthn.js       # /api/webauthn/*
 │
 ├── views/
 │   ├── partials/             # head, footer, navbar, sidebars, flash
@@ -53,7 +52,6 @@ uyo attendance/
 │       ├── app.js            # Shared utilities
 │       ├── qr-scanner.js     # html5-qrcode wrapper
 │       ├── gps.js            # navigator.geolocation wrapper
-│       ├── webauthn.js       # WebAuthn registration & authentication
 │       └── session-monitor.js # Lecturer live session polling
 │
 ├── db/
@@ -65,6 +63,8 @@ uyo attendance/
 ```
 
 ---
+
+Existing databases must apply `db/migrations/20261013_admin_session_approval.sql` followed by `db/migrations/20261013_remove_biometric.sql` to update the session approval and attendance schema.
 
 ## 🚀 Setup — Local Development
 
@@ -138,7 +138,7 @@ MySQL data is persisted in a Docker volume. Schema and seed are applied automati
 ## 📡 Attendance Verification Methods
 
 ### 1. QR Code (Real Implementation)
-- Lecturer opens a session → server generates a **UUID-based session token**
+- Lecturer opens a session → server generates a **six-digit session token, activated after admin approval**
 - Token is rendered as a **QR code data-URL** using the `qrcode` npm package
 - Students scan with device camera via **`html5-qrcode`** (CDN) which decodes the token
 - Decoded token is submitted to `POST /api/attendance/mark` for server-side validation
@@ -149,14 +149,7 @@ MySQL data is persisted in a Docker volume. Schema and seed are applied automati
 - If student is outside the configured radius (default: 100m) → attendance **rejected with specific distance error**
 - Venue coordinates are set per-course; lecturers can use "Use My Location" on course creation
 
-### 3. Biometric / WebAuthn (Real Implementation)
-- Uses **`navigator.credentials`** (Web Authentication API) with a **platform authenticator**
-- Students first register their device: `POST /api/webauthn/register/begin` → `/finish`
-- On marking: `POST /api/webauthn/authenticate/begin` → device prompts fingerprint/Face ID/PIN → `/finish`
-- Server sets `session.biometricVerified = true` which is passed to the attendance marking endpoint
-- **⚠️ Requires HTTPS or `localhost`** — browsers block `navigator.credentials` on plain HTTP
-
-### 4. Manual Correction (Audit Trail)
+### 3. Manual Correction (Audit Trail)
 - Lecturer or Admin can mark/unmark a student via the session live view
 - Every correction writes a `manual_corrections` record with: who corrected, when, the reason, and the previous value
 - Never silently overwrites — full audit trail preserved
@@ -182,7 +175,6 @@ The `validateAndMarkAttendance()` function in `engine/uuasEngine.js` enforces:
 3. **Enrollment check** — student must be enrolled in the course
 4. **Duplicate prevention** — unique constraint + check before insert
 5. **GPS radius** — if `requires_gps`, distance must be ≤ `gps_radius_meters`
-6. **Biometric** — if `requires_biometric`, `biometric_verified` must be `true`
 
 Any failed check returns a **specific, descriptive error message** — never a silent failure.
 
@@ -193,11 +185,10 @@ Any failed check returns a **specific, descriptive error message** — never a s
 | Table                 | Purpose                                        |
 |-----------------------|------------------------------------------------|
 | `users`               | All accounts (student/lecturer/admin)          |
-| `webauthn_credentials`| Device credentials for biometric auth         |
 | `courses`             | Courses with venue GPS coordinates             |
 | `enrollments`         | Student-course enrollment records             |
 | `attendance_sessions` | Timed sessions with token + config            |
-| `attendance_records`  | Individual marks with method + GPS + biometric|
+| `attendance_records`  | Individual marks with method + GPS|
 | `manual_corrections`  | Audit trail for manual changes                |
 
 ---

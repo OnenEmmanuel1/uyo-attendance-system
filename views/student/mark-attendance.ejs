@@ -33,6 +33,8 @@
                     </h2>
                   </div>
                   <div class="uuas-card-body">
+                    <div id="http-capability-note" class="uuas-alert uuas-alert--info" style="display:none;margin-bottom:1rem" role="status"></div>
+                    <div id="token-error" class="uuas-alert uuas-alert--error" style="display:none;margin-bottom:1rem" role="alert"></div>
                     <% if (error) { %>
                       <div class="uuas-alert uuas-alert--error" role="alert">
                         <%= error %>
@@ -81,7 +83,7 @@
                   </div>
                 </div>
 
-                <!-- ══ Step 2: Confirm / GPS / Biometric ══════════════════ -->
+                <!-- ══ Step 2: Confirm Attendance / GPS ══════════════════ -->
                 <div id="step-confirm" class="uuas-card" style="max-width:520px;margin:0 auto;display:none">
                   <div class="uuas-card-header">
                     <h2 class="uuas-h3">Confirm Attendance Verification</h2>
@@ -119,26 +121,6 @@
                         role="status" aria-live="polite"></div>
                     </div>
 
-                    <!-- Biometric block -->
-                    <div id="biometric-block" style="display:none;margin-bottom:1.25rem">
-                      <div class="uuas-alert uuas-alert--warning">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                          stroke-width="2" aria-hidden="true">
-                          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                        </svg>
-                        <div>Biometric verification required. Use device biometric sensor.</div>
-                      </div>
-                      <button class="uuas-btn uuas-btn--outline" style="width:100%" id="btn-biometric">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                          stroke-width="2" aria-hidden="true">
-                          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                        </svg>
-                        Verify Biometric Identity
-                      </button>
-                      <div id="biometric-status" class="uuas-text-xs uuas-muted"
-                        style="margin-top:0.5rem;text-align:center" role="status" aria-live="polite"></div>
-                    </div>
-
                     <div id="mark-error" class="uuas-alert uuas-alert--error" style="display:none" role="alert"></div>
                     <div id="mark-success" class="uuas-alert uuas-alert--success" style="display:none" role="status">
                     </div>
@@ -164,14 +146,14 @@
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <script src="/js/qr-scanner.js"></script>
   <script src="/js/gps.js"></script>
-  <script src="/js/webauthn.js"></script>
+  
 
   <script>
     (function () {
       let currentToken = '<%= token || "" %>';
       let sessionData = null;
       let capturedGps = null;
-      let biometricOk = false;
+      let requirements = { gps: false };
 
       const stepToken = document.getElementById('step-token');
       const stepConfirm = document.getElementById('step-confirm');
@@ -193,35 +175,44 @@
           return;
         }
         currentToken = token.trim();
+        const useButton = document.getElementById('btn-use-token');
+        useButton.disabled = true;
         try {
-          const res = await fetch(`/api/sessions/0/status`, { method: 'GET' }); // placeholder
-          const infoRes = await fetch(`/student/mark-attendance?token=${encodeURIComponent(currentToken)}`, {
-            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-          });
-          showConfirmStep(currentToken, null);
+          const res = await fetch(`/api/sessions/token/${encodeURIComponent(currentToken)}`);
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error || 'Could not validate this session token.');
+          showConfirmStep(currentToken, data.session);
         } catch (e) {
-          showConfirmStep(currentToken, null);
+          showError(e.message || 'Network error while validating the session token.', document.getElementById('token-error'));
+        } finally {
+          useButton.disabled = false;
         }
       }
 
       function showConfirmStep(token, data) {
         stepToken.style.display = 'none';
         stepConfirm.style.display = '';
-        document.getElementById('info-course').textContent = 'Session: ' + token.substring(0, 16) + '…';
-        document.getElementById('info-session').textContent = 'Connecting to session…';
-        document.getElementById('info-expires').textContent = '';
+        document.getElementById('info-course').textContent = data ? `${data.course_code} — ${data.course_title}` : 'Validating session…';
+        document.getElementById('info-session').textContent = data?.title || 'Class attendance';
+        document.getElementById('info-expires').textContent = data?.expires_at ? `Expires ${new Date(data.expires_at).toLocaleString()}` : '';
+        requirements = { gps: !!data?.requires_gps };
         QrScanner.stop();
         checkRequirements();
       }
 
       function checkRequirements() {
-        document.getElementById('gps-block').style.display = '';
-        document.getElementById('biometric-block').style.display = '';
+        const secure = window.isSecureContext;
+        document.getElementById('gps-block').style.display = requirements.gps ? '' : 'none';
+        const note = document.getElementById('http-capability-note');
+        if (!secure && requirements.gps) {
+          note.textContent = 'This session requires location verification. Mobile browsers block these features on a plain HTTP site, so attendance cannot be submitted for this session here. Ask your lecturer to open a session without GPS verification, or use a trusted HTTPS address.';
+          note.style.display = 'flex';
+        } else note.style.display = 'none';
         updateMarkButton();
       }
 
       function updateMarkButton() {
-        btnMark.disabled = false;
+        btnMark.disabled = requirements.gps && !capturedGps;
       }
 
       // ── GPS capture ───────────────────────────────────────────────
@@ -233,27 +224,11 @@
           capturedGps = await captureGPS();
           status.textContent = `Location captured (±${Math.round(capturedGps.accuracy)}m accuracy)`;
           status.style.color = 'var(--uuas-green)';
+          updateMarkButton();
         } catch (err) {
           status.textContent = err.message;
           status.style.color = 'var(--uuas-red)';
           document.getElementById('btn-capture-gps').disabled = false;
-        }
-      });
-
-      // ── Biometric auth ────────────────────────────────────────────
-      document.getElementById('btn-biometric').addEventListener('click', async () => {
-        const status = document.getElementById('biometric-status');
-        status.textContent = 'Waiting for biometric…';
-        document.getElementById('btn-biometric').disabled = true;
-        try {
-          await authenticateBiometric();
-          biometricOk = true;
-          status.textContent = 'Identity verified';
-          status.style.color = 'var(--uuas-green)';
-        } catch (err) {
-          status.textContent = err.message;
-          status.style.color = 'var(--uuas-red)';
-          document.getElementById('btn-biometric').disabled = false;
         }
       });
 
@@ -265,7 +240,6 @@
 
         const body = {
           token: currentToken,
-          biometric_verified: biometricOk,
         };
         if (capturedGps) {
           body.gps_lat = capturedGps.lat;
@@ -310,7 +284,7 @@
           (token) => {
             status.textContent = 'QR detected successfully!';
             status.style.color = 'var(--uuas-green)';
-            showConfirmStep(token, null);
+            resolveAndShowConfirm(token);
           },
           (err) => {
             status.textContent = err;
@@ -335,17 +309,14 @@
         resolveAndShowConfirm(t);
       });
 
+      if (currentToken) resolveAndShowConfirm(currentToken);
+
       document.getElementById('btn-back').addEventListener('click', () => {
         stepToken.style.display = '';
         stepConfirm.style.display = 'none';
         capturedGps = null;
-        biometricOk = false;
       });
 
-      // Auto-resolve if token in URL
-      if (currentToken) {
-        showConfirmStep(currentToken, null);
-      }
     })();
   </script>
 

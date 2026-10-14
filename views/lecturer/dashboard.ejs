@@ -14,7 +14,7 @@
               <span class="uuas-live-dot" style="width:10px;height:10px"></span>
               <h2 class="uuas-h3" style="color:#064e3b;margin:0">Live Attendance Broadcast Active (<%= openSessions.length %>)</h2>
             </div>
-            <span class="uuas-pill uuas-pill--ontime" style="font-weight:700">Broadcasting QR Code</span>
+            <span class="uuas-pill uuas-pill--ontime" style="font-weight:700">Sessions require admin verification</span>
           </div>
           <div class="uuas-card-body" style="padding:1.25rem">
             <% openSessions.forEach(sess => { %>
@@ -22,7 +22,7 @@
                 <div>
                   <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
                     <h3 class="uuas-h3" style="color:var(--uuas-gray-900);margin:0"><%= sess.course_code %></h3>
-                    <span class="uuas-pill uuas-pill--ontime">Token: <strong><%= sess.session_token %></strong></span>
+                    <% if (sess.session_token) { %><span class="uuas-pill uuas-pill--ontime">Token: <strong><%= sess.session_token %></strong></span><% } else { %><span class="uuas-pill uuas-pill--late">Awaiting admin verification</span><% } %>
                   </div>
                   <div style="font-size:0.875rem;color:var(--uuas-gray-700);margin-top:0.35rem;font-weight:500"><%= sess.course_title %></div>
                   <div style="font-size:0.75rem;color:var(--uuas-gray-500);margin-top:0.35rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
@@ -65,7 +65,7 @@
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           <div>
             <div style="font-size:1.125rem;font-weight:700">Open Attendance Session</div>
-            <div style="font-size:0.875rem;font-weight:400;opacity:0.9">Select an assigned course, set schedule & launch live verification</div>
+            <div style="font-size:0.875rem;font-weight:400;opacity:0.9">Select an assigned course and request admin approval to open attendance</div>
           </div>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:auto" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
@@ -351,16 +351,6 @@
               <div class="uuas-text-xs uuas-muted">Students must be within the lecture venue radius</div>
             </div>
           </div>
-          <div class="uuas-form-check">
-            <input type="checkbox" id="modal-requires-biometric" name="requires_biometric">
-            <div>
-              <label for="modal-requires-biometric" class="uuas-bold" style="cursor:pointer;display:inline-flex;align-items:center;gap:0.35rem">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                Require Biometric (WebAuthn)
-              </label>
-              <div class="uuas-text-xs uuas-muted">Students must verify with fingerprint or device lock</div>
-            </div>
-          </div>
         </div>
 
         <div id="modal-gps-radius-row" style="display:none">
@@ -522,7 +512,6 @@
       title:              document.getElementById('modal-session-title').value,
       duration_minutes:   parseInt(durationInput.value) || 60,
       requires_gps:       document.getElementById('modal-requires-gps').checked,
-      requires_biometric: document.getElementById('modal-requires-biometric').checked,
       gps_radius:         parseInt(document.getElementById('modal-gps-radius').value),
     };
 
@@ -539,7 +528,7 @@
         errEl.textContent = data.error || 'Failed to open session.';
         errEl.style.display = 'flex';
         submitBtn.disabled = false;
-        submitBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> <span>Open Session & Generate QR</span>';
+        submitBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> <span>Request Session Approval</span>';
       }
     } catch (e) {
       errEl.textContent = 'Network error. Please try again.';
